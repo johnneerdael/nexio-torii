@@ -9,13 +9,14 @@ const { addonBuilder } = require("stremio-addon-sdk");
 const axios = require("axios");
 const { searchAnime, getAnimeMeta, getTrendingAnime, getTopAnime, getAiringAnime, getSeasonalAnime, getJikanMeta, fetchEpisodeDetails, getCurrentSeasonInfo } = require("./lib/anilist");
 const { searchNyaaForAnime } = require("./lib/nyaa");
-const { checkRD, checkTorbox, getActiveRD, getActiveTorbox } = require("./lib/debrid");
+const { encodeConfigPayload, fromBase64Safe, parseConfig, toBase64Safe } = require("./lib/config");
+const { checkStoreTorz } = require("./lib/debrid");
+const { buildDebridStreams } = require("./lib/stream-builder");
 const { extractEpisodeNumber, getBatchRange, isEpisodeMatch, selectBestVideoFile, isSeasonBatch, verifyTitleMatch } = require("./lib/parser");
 
 let BASE_URL = process.env.BASE_URL || "http://127.0.0.1:7002";
 BASE_URL = BASE_URL.replace(/\/+$/, "");
 
-const INTERNAL_TB_KEY = process.env.INTERNAL_TORBOX_KEY || "";
 const FLARESOLVERR_URL = process.env.FLARESOLVERR_URL || null;
 
 //===============
@@ -52,41 +53,6 @@ async function enqueueScrape(queryFn) {
             scrapeQueue.push(task);
         }
     });
-}
-
-//===============
-// BASE64 ENCODING UTILITIES
-// Converts strings to a URL-safe Base64 format to be passed safely 
-// through Stremio catalog and stream IDs without breaking routing.
-//===============
-function toBase64Safe(str) { 
-    return Buffer.from(str, "utf8").toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, ""); 
-}
-
-function fromBase64Safe(str) { 
-    try { 
-        return Buffer.from(str.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"); 
-    } catch (e) { 
-        return ""; 
-    } 
-}
-
-//===============
-// CONFIGURATION PARSER
-// Extracts and decodes the user's specific settings (API keys, preferences)
-// that are embedded within the Stremio manifest URL payload.
-//===============
-function parseConfig(config) {
-    let parsed = {};
-    try { 
-        if (config && config.Amatsu) { 
-            const decoded = Buffer.from(config.Amatsu.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"); 
-            parsed = JSON.parse(decoded); 
-        } else { 
-            parsed = config || {}; 
-        } 
-    } catch (e) {}
-    return parsed;
 }
 
 //===============
@@ -407,8 +373,8 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
         //===============
         // VALIDATION: Check if a valid playback method is available
         //===============
-        if (!userConfig.rdKey && !userConfig.tbKey && !userConfig.enableP2P) {
-            console.log(`[PIPELINE] 🛑 ABBRUCH: Weder Debrid-Dienste noch P2P aktiviert.`);
+        if (userConfig.debridServices.length === 0 && !userConfig.enableP2P) {
+            console.log("[PIPELINE] Stop: no debrid services configured and P2P disabled.");
             return { "streams": [] };
         }
 
@@ -696,12 +662,15 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
         if (!torrents.length) return { "streams": [], "cacheMaxAge": 60 };
 
         const hashes = torrents.map(t => t.hash.toLowerCase());
-        const [rdC, tbC, rdA, tbA] = await Promise.all([
-            userConfig.rdKey ? checkRD(hashes, userConfig.rdKey).catch(() => ({})) : Promise.resolve({}),
-            (userConfig.tbKey || INTERNAL_TB_KEY) ? checkTorbox(hashes, userConfig.tbKey || INTERNAL_TB_KEY).catch(() => ({})) : Promise.resolve({}),
-            userConfig.rdKey ? getActiveRD(userConfig.rdKey).catch(() => ({})) : Promise.resolve({}),
-            userConfig.tbKey ? getActiveTorbox(userConfig.tbKey).catch(() => ({})) : Promise.resolve({})
-        ]);
+        const availabilityByEntry = await Promise.all(
+            userConfig.debridServices.map(entry =>
+                checkStoreTorz(hashes, entry).catch(error => {
+                    console.error(`[PIPELINE] ${entry.service} availability failed: ${error.message}`);
+                    return {};
+                })
+            )
+        );
+        const amatsuPayload = encodeConfigPayload(userConfig);
 
         const flags = { "GER": "🇩🇪", "ITA": "🇮🇹", "FRE": "🇫🇷", "SPA": "🇪🇸", "LAT": "💃🏻", "RUS": "🇷🇺", "POR": "🇵🇹", "ARA": "🇸🇦", "CHI": "🇨🇳", "KOR": "🇰🇷", "HIN": "🇮🇳", "POL": "🇵🇱", "NLD": "🇳🇱", "TUR": "🇹🇷", "VIE": "🇻🇳", "IND": "🇮🇩", "JPN": "🇯🇵", "ENG": "🇬🇧", "MULTI": "🌍" };
         const userLangs = Array.isArray(userConfig.language) ? userConfig.language : [userConfig.language || "ENG"];
@@ -711,7 +680,6 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
 
         // Iterates through valid torrents to format final stream objects
         torrents.forEach(t => {
-            const hashLow = t.hash.toLowerCase();
             const { res } = extractTags(t.title);
             const bytes = parseSizeToBytes(t.size);
             const streamLang = extractLanguage(t.title, userLangs);
@@ -759,106 +727,27 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
                 });
             }
 
-            //===============
-            // REAL-DEBRID STREAM GENERATION
-            // Determines cache status, attaches download progress, and links sub-files.
-            //===============
-            if (userConfig.rdKey) {
-                const filesRD = rdC[hashLow];
-                const prog = rdA[hashLow];
-                const tbFiles = tbC[hashLow];
-                
-                let matchedFile = filesRD ? selectBestVideoFile(filesRD, requestedEp, expectedSeason, isMovie) : null;
-                const isStremThruCached = filesRD && filesRD.length > 0;
-                const isRadarCached = tbFiles && tbFiles.length > 0;
-                const isRDCached = isStremThruCached || isRadarCached;
-                const isDownloading = prog !== undefined && prog < 100;
-
-                if (isStremThruCached && !matchedFile && !isMovie) {
-                    epDropCount++;
-                } else {
-                    let uiName = `AMATSU [☁️ RD]`;
-                    let streamStatus = "☁️ Download";
-
-                    if (isStremThruCached) {
-                        uiName = `AMATSU [⚡ RD+]`; streamStatus = "⚡ Cached (StremThru)";
-                    } else if (isRadarCached) {
-                        uiName = `AMATSU [⚡ RD+]`; streamStatus = "⚡ Cached (Radar)";
-                    } else if (isDownloading) {
-                        uiName = `AMATSU [⏳ ${prog}% RD]`; streamStatus = `⏳ ${prog}% Downloading`;
-                    }
-
-                    const streamDescLine1 = `${flag} Nyaa | ${streamStatus}${batchStr}`;
-                    const streamDescLine2 = `📄 ${t.title}`;
-                    const streamDescLine3 = `💾 ${t.size} | 👥 ${seeders} Seeds`;
-
-                    const streamPayload = {
-                        "name": uiName + `\n🎥 ${res}`,
-                        "description": streamDescLine1 + "\n" + streamDescLine2 + "\n" + streamDescLine3,
-                        "url": BASE_URL + "/resolve/realdebrid/" + userConfig.rdKey + "/" + t.hash + "/" + requestedEp,
-                        "behaviorHints": { "bingeGroup": "amatsu_rd_" + t.hash, "filename": matchedFile ? matchedFile.name : undefined },
-                        "_bytes": bytes, "_lang": streamLang, "_isCached": isRDCached, "_res": res, "_prog": prog || 0, "_seeders": seeders, "_isBatch": isBatch
-                    };
-
-                    let subtitles = [];
-                    if (isStremThruCached && filesRD) {
-                        const subFiles = filesRD.filter(f => /\.(srt|vtt|ass|ssa)$/i.test(f.name || f.path || ""));
-                        subFiles.forEach(sub => {
-                            subtitles.push({ id: String(sub.id), url: `${BASE_URL}/sub/realdebrid/${userConfig.rdKey}/${t.hash}/${sub.id}?filename=${encodeURIComponent(sub.name || sub.path || "sub.srt")}`, lang: extractLanguage(sub.name || sub.path || "", userLangs) || "ENG" });
-                        });
-                    }
-                    if (subtitles.length > 0) streamPayload.subtitles = subtitles;
-                    if (!userConfig.hideUncached || isRDCached) streams.push(streamPayload);
-                }
-            }
-
-            //===============
-            // TORBOX STREAM GENERATION
-            // Determines cache status, attaches download progress, and links sub-files.
-            //===============
-            if (userConfig.tbKey) {
-                const files = tbC[hashLow];
-                const prog = tbA[hashLow];
-                
-                let matchedFile = files ? selectBestVideoFile(files, requestedEp, expectedSeason, isMovie) : null;
-                const isCached = files && files.length > 0;
-                const isDownloading = prog !== undefined && prog < 100;
-
-                if (isCached && !matchedFile && !isMovie) {
-                } else {
-                    let uiName = `AMATSU [☁️ TB]`;
-                    let streamStatus = "☁️ Download";
-
-                    if (isCached) {
-                        uiName = `AMATSU [⚡ TB]`; streamStatus = "⚡ Cached";
-                    } else if (isDownloading) {
-                        uiName = `AMATSU [⏳ ${prog}% TB]`; streamStatus = `⏳ ${prog}% Downloading`;
-                    }
-
-                    const streamDescLine1 = `${flag} Nyaa | ${streamStatus}${batchStr}`;
-                    const streamDescLine2 = `📄 ${t.title}`;
-                    const streamDescLine3 = `💾 ${t.size} | 👥 ${seeders} Seeds`;
-
-                    const streamPayload = {
-                        "name": uiName + `\n🎥 ${res}`,
-                        "description": streamDescLine1 + "\n" + streamDescLine2 + "\n" + streamDescLine3,
-                        "url": BASE_URL + "/resolve/torbox/" + userConfig.tbKey + "/" + t.hash + "/" + requestedEp,
-                        "behaviorHints": { "bingeGroup": "amatsu_tb_" + t.hash, "filename": matchedFile ? matchedFile.name : undefined },
-                        "_bytes": bytes, "_lang": streamLang, "_isCached": isCached, "_res": res, "_prog": prog || 0, "_seeders": seeders, "_isBatch": isBatch
-                    };
-                    
-                    let subtitles = [];
-                    if (isCached && files) {
-                        const subFiles = files.filter(f => /\.(srt|vtt|ass|ssa)$/i.test(f.name || f.path || ""));
-                        subFiles.forEach(sub => {
-                            subtitles.push({ id: String(sub.id), url: `${BASE_URL}/sub/torbox/${userConfig.tbKey}/${t.hash}/${sub.id}?filename=${encodeURIComponent(sub.name || sub.path || "sub.srt")}`, lang: extractLanguage(sub.name || sub.path || "", userLangs) || "ENG" });
-                        });
-                    }
-                    if (subtitles.length > 0) streamPayload.subtitles = subtitles;
-                    if (!userConfig.hideUncached || isCached) streams.push(streamPayload);
-                }
-            }
         });
+
+        const debridStreams = buildDebridStreams({
+            torrents,
+            availabilityByEntry,
+            userConfig,
+            amatsuPayload,
+            baseUrl: BASE_URL,
+            requestedEp,
+            expectedSeason,
+            isMovie,
+            isRawSearch,
+            flags,
+            extractTags,
+            extractLanguage,
+            parseSizeToBytes,
+            selectBestVideoFile,
+            isEpisodeMatch,
+            isSeasonBatch
+        });
+        streams.push(...debridStreams);
 
         console.log(`[AMATSU FORENSICS] Episoden-Filter hat ${epDropCount} nicht-passende Einträge gelöscht.`);
         console.log(`[AMATSU FORENSICS] Finale Streams an Stremio gesendet: ${streams.length}\n`);

@@ -400,37 +400,48 @@
 
     <script>
         const DEBRID_SERVICES = {
-            realdebrid: { name: "RealDebrid", helpText: "API token" },
-            torbox: { name: "TorBox", helpText: "API key" },
-            alldebrid: { name: "AllDebrid", helpText: "API key" },
-            premiumize: { name: "Premiumize", helpText: "API key" },
-            debridlink: { name: "Debrid-Link", helpText: "API key" },
-            debrider: { name: "Debrider", helpText: "API key" },
-            easydebrid: { name: "EasyDebrid", helpText: "API key" },
-            offcloud: { name: "Offcloud", helpText: "Email:password or API key accepted by StremThru" },
-            pikpak: { name: "PikPak", helpText: "Email:password accepted by StremThru" }
+            realdebrid: { name: "RealDebrid", helpText: "API token", apiKeyUrl: "https://real-debrid.com/apitoken" },
+            torbox: { name: "TorBox", helpText: "API key", apiKeyUrl: "https://torbox.app/settings" },
+            alldebrid: { name: "AllDebrid", helpText: "API key", apiKeyUrl: "https://alldebrid.com/apikeys" },
+            premiumize: { name: "Premiumize", helpText: "API key", apiKeyUrl: "https://premiumize.me/account" },
+            debridlink: { name: "Debrid-Link", helpText: "API key", apiKeyUrl: "https://debrid-link.com/webapp/apikey" },
+            debrider: { name: "Debrider", helpText: "API key", apiKeyUrl: "https://debrider.app/dashboard/account" },
+            easydebrid: { name: "EasyDebrid", helpText: "API key", apiKeyUrl: "https://paradise-cloud.com/products/easydebrid" },
+            offcloud: { name: "Offcloud", helpText: "Email:password or API key accepted by StremThru", apiKeyUrl: "https://offcloud.com/account" },
+            pikpak: { name: "PikPak", helpText: "Email:password accepted by StremThru", apiKeyUrl: "https://mypikpak.com" }
         };
 
         let debridServiceCounter = 0;
+
+        function updateDebridServiceHelp(row, service) {
+            const meta = DEBRID_SERVICES[service] || DEBRID_SERVICES.realdebrid;
+            const input = row.querySelector(".debrid-api-key");
+            const keyLink = row.querySelector(".debrid-api-key-link");
+            input.title = meta.helpText;
+            input.placeholder = meta.helpText;
+            keyLink.href = meta.apiKeyUrl;
+            keyLink.title = `Get ${meta.name} ${meta.helpText}`;
+        }
 
         function addDebridServiceRow(service = "realdebrid", apiKey = "") {
             const container = document.getElementById("debridServicesContainer");
             const entryId = debridServiceCounter++;
             const row = document.createElement("div");
-            row.className = "grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto] gap-2 items-center";
+            row.className = "grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto_auto] gap-2 items-center";
             row.dataset.entryId = String(entryId);
             row.innerHTML = `
                 <select class="debrid-service-select input-glass rounded-xl px-3 py-3 text-white outline-none font-mono text-xs bg-black/40">
                     ${Object.entries(DEBRID_SERVICES).map(([value, meta]) => `<option value="${value}">${meta.name}</option>`).join("")}
                 </select>
-                <input type="password" class="debrid-api-key input-glass rounded-xl px-4 py-3 text-white outline-none input-glow font-mono text-xs" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                <input type="password" class="debrid-api-key input-glass rounded-xl px-4 py-3 text-white outline-none input-glow font-mono text-xs col-span-2 sm:col-span-1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                <a class="debrid-api-key-link text-[10px] font-mono text-blue-400 hover:text-white uppercase tracking-widest whitespace-nowrap px-2 py-2" target="_blank" rel="noopener noreferrer">Get key</a>
                 <button type="button" class="remove-debrid-service text-gray-600 hover:text-red-400 px-2 py-2" title="Remove">×</button>
             `;
             row.querySelector(".debrid-service-select").value = service;
             row.querySelector(".debrid-api-key").value = apiKey;
-            row.querySelector(".debrid-api-key").title = DEBRID_SERVICES[service].helpText;
+            updateDebridServiceHelp(row, service);
             row.querySelector(".debrid-service-select").addEventListener("change", event => {
-                row.querySelector(".debrid-api-key").title = DEBRID_SERVICES[event.target.value].helpText;
+                updateDebridServiceHelp(row, event.target.value);
                 generateManifestUrl();
             });
             row.querySelector(".debrid-api-key").addEventListener("input", generateManifestUrl);

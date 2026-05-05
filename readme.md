@@ -2,8 +2,6 @@
   <img src="https://raw.githubusercontent.com/johnneerdael/nexio-torii/main/static/nexio-torii.png" width="420" alt="Nexio Torii">
 </p>
 
-<h1 align="center">Nexio Torii</h1>
-
 <p align="center">
   <img src="https://img.shields.io/badge/Stremio-Addon-8a5a9e?style=for-the-badge&logo=stremio" alt="Stremio Addon">
   <img src="https://img.shields.io/badge/GHCR-Ready-2496ED?style=for-the-badge&logo=docker" alt="GHCR Ready">

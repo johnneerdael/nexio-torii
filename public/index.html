@@ -248,12 +248,11 @@
             <div class="space-y-8">
                 
                 <div class="space-y-4">
-                    <p class="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2 pl-2">Providers & Access</p>
-                    <input type="password" id="rdKey" placeholder="Real-Debrid Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-                        class="w-full input-glass rounded-2xl px-6 py-4 text-white placeholder-gray-700 outline-none duration-300 input-glow font-mono text-sm tracking-widest">
-
-                    <input type="password" id="tbKey" placeholder="Torbox Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-                        class="w-full input-glass rounded-2xl px-6 py-4 text-white placeholder-gray-700 outline-none duration-300 input-glow font-mono text-sm tracking-widest">
+                    <div class="flex items-center justify-between gap-4">
+                        <p class="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2 pl-2">Providers & Access</p>
+                        <button type="button" id="addDebridService" class="text-[10px] font-mono text-blue-400 hover:text-white uppercase tracking-widest">Add</button>
+                    </div>
+                    <div id="debridServicesContainer" class="space-y-3"></div>
                 </div>
 
                 <div class="pt-2 border-t border-white/5">
@@ -368,7 +367,7 @@
             <div class="pt-4 border-t border-white/5 mt-6">
                 <p class="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2 text-left px-2">Manifest URL:</p>
                 <div class="relative group">
-                    <input type="text" id="manifestUrlDisplay" readonly value="Enter an API key or enable P2P..." class="copy-box w-full input-glass rounded-xl px-4 py-3 text-gray-400 font-mono text-[10px] text-left outline-none opacity-50 cursor-pointer selection:bg-blue-500/30 transition-opacity duration-300">
+                    <input type="text" id="manifestUrlDisplay" readonly value="Add a debrid service or enable P2P..." class="copy-box w-full input-glass rounded-xl px-4 py-3 text-gray-400 font-mono text-[10px] text-left outline-none opacity-50 cursor-pointer selection:bg-blue-500/30 transition-opacity duration-300">
                     <button onclick="copyManifest()" id="copyBtn" class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-800/80 hover:bg-blue-500 text-white p-1.5 rounded-lg transition-opacity duration-300 opacity-0 group-hover:opacity-100 disabled:opacity-0" title="Copy to clipboard">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 012 2z"></path></svg>
                     </button>
@@ -389,7 +388,7 @@
     <div id="modal-overlay">
         <div class="modal-card p-10 rounded-[2rem] max-w-xs w-full text-center">
             <h3 class="text-xl font-bold text-white mb-4 tracking-wider uppercase">Access Denied</h3>
-            <p class="text-gray-400 text-sm mb-8 font-mono leading-relaxed">At least one API key OR the P2P option is required to establish connection.</p>
+            <p class="text-gray-400 text-sm mb-8 font-mono leading-relaxed">At least one debrid service OR the P2P option is required to establish connection.</p>
             <button onclick="closeModal()" class="w-full bg-white text-black py-3 rounded-xl font-bold uppercase tracking-widest text-xs hover:bg-blue-600 hover:text-white transition-colors duration-300">
                 Dismiss
             </button>
@@ -397,6 +396,56 @@
     </div>
 
     <script>
+        const DEBRID_SERVICES = {
+            realdebrid: { name: "RealDebrid", helpText: "API token" },
+            torbox: { name: "TorBox", helpText: "API key" },
+            alldebrid: { name: "AllDebrid", helpText: "API key" },
+            premiumize: { name: "Premiumize", helpText: "API key" },
+            debridlink: { name: "Debrid-Link", helpText: "API key" },
+            debrider: { name: "Debrider", helpText: "API key" },
+            easydebrid: { name: "EasyDebrid", helpText: "API key" },
+            offcloud: { name: "Offcloud", helpText: "Email:password or API key accepted by StremThru" },
+            pikpak: { name: "PikPak", helpText: "Email:password accepted by StremThru" }
+        };
+
+        let debridServiceCounter = 0;
+
+        function addDebridServiceRow(service = "realdebrid", apiKey = "") {
+            const container = document.getElementById("debridServicesContainer");
+            const entryId = debridServiceCounter++;
+            const row = document.createElement("div");
+            row.className = "grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto] gap-2 items-center";
+            row.dataset.entryId = String(entryId);
+            row.innerHTML = `
+                <select class="debrid-service-select input-glass rounded-xl px-3 py-3 text-white outline-none font-mono text-xs bg-black/40">
+                    ${Object.entries(DEBRID_SERVICES).map(([value, meta]) => `<option value="${value}">${meta.name}</option>`).join("")}
+                </select>
+                <input type="password" class="debrid-api-key input-glass rounded-xl px-4 py-3 text-white outline-none input-glow font-mono text-xs" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                <button type="button" class="remove-debrid-service text-gray-600 hover:text-red-400 px-2 py-2" title="Remove">×</button>
+            `;
+            row.querySelector(".debrid-service-select").value = service;
+            row.querySelector(".debrid-api-key").value = apiKey;
+            row.querySelector(".debrid-api-key").title = DEBRID_SERVICES[service].helpText;
+            row.querySelector(".debrid-service-select").addEventListener("change", event => {
+                row.querySelector(".debrid-api-key").title = DEBRID_SERVICES[event.target.value].helpText;
+                generateManifestUrl();
+            });
+            row.querySelector(".debrid-api-key").addEventListener("input", generateManifestUrl);
+            row.querySelector(".remove-debrid-service").addEventListener("click", () => {
+                row.remove();
+                generateManifestUrl();
+            });
+            container.appendChild(row);
+            generateManifestUrl();
+        }
+
+        function getDebridServices() {
+            return Array.from(document.querySelectorAll("#debridServicesContainer > div")).map(row => ({
+                service: row.querySelector(".debrid-service-select").value,
+                apiKey: row.querySelector(".debrid-api-key").value.trim()
+            })).filter(entry => entry.service && entry.apiKey);
+        }
+
         function showModal() {
             document.getElementById("modal-overlay").classList.add("show-modal");
         }
@@ -418,8 +467,7 @@
         }
 
         function generateManifestUrlLogic() {
-            const rd = document.getElementById("rdKey").value.trim();
-            const tb = document.getElementById("tbKey").value.trim();
+            const debridServices = getDebridServices();
             const enableP2P = document.getElementById("enableP2P").checked;
 
             const langCheckboxes = document.querySelectorAll(".lang-cb:checked");
@@ -444,8 +492,8 @@
             const displayBox = document.getElementById("manifestUrlDisplay");
             const copyBtn = document.getElementById("copyBtn");
 
-            if (!rd && !tb && !enableP2P) {
-                displayBox.value = "Enter an API key or enable P2P...";
+            if (debridServices.length === 0 && !enableP2P) {
+                displayBox.value = "Add a debrid service or enable P2P...";
                 displayBox.style.opacity = "0.5";
                 copyBtn.disabled = true;
                 return null;
@@ -463,8 +511,7 @@
                 resolutions
             };
             
-            if (rd) rawConfig.rdKey = rd;
-            if (tb) rawConfig.tbKey = tb;
+            if (debridServices.length > 0) rawConfig.debridServices = debridServices;
             if (enableP2P) rawConfig.enableP2P = true;
             if (languages.length > 0) rawConfig.language = languages;
 
@@ -501,7 +548,7 @@
 
         function copyManifest() {
             const copyText = document.getElementById("manifestUrlDisplay");
-            if (copyText && !copyText.value.includes("Enter an API key")) {
+            if (copyText && !copyText.value.includes("Add a debrid service")) {
                 copyText.select();
                 copyText.setSelectionRange(0, 99999);
                 try {
@@ -544,18 +591,18 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             const inputs = [
-                "rdKey", "tbKey", "enableP2P", 
+                "enableP2P",
                 "hideUncached", "useEnglishTitles",
-                "showSeasonalSeries", "showAiringSeries", "showTrendingSeries", "showTopSeries", 
+                "showSeasonalSeries", "showAiringSeries", "showTrendingSeries", "showTopSeries",
                 "showTrendingMovies", "showTopMovies"
             ];
-            
+
             inputs.forEach(id => {
                 document.getElementById(id).addEventListener("change", generateManifestUrl);
-                if (document.getElementById(id).tagName === "INPUT" && document.getElementById(id).type === "password") {
-                    document.getElementById(id).addEventListener("input", generateManifestUrl);
-                }
             });
+
+            document.getElementById("addDebridService").addEventListener("click", () => addDebridServiceRow());
+            addDebridServiceRow("realdebrid", "");
 
             document.querySelectorAll(".lang-cb").forEach(cb => {
                 cb.addEventListener("change", generateManifestUrl);
@@ -566,7 +613,7 @@
             });
             
             document.getElementById("manifestUrlDisplay").addEventListener("click", function() {
-                if (!this.value.includes("Enter an API key")) {
+                if (!this.value.includes("Add a debrid service")) {
                     this.select();
                 }
             });
@@ -574,11 +621,6 @@
             checkNyaaStatus();
             setInterval(checkNyaaStatus, 300000);
             
-            document.querySelectorAll("input[type=\"password\"]").forEach(input => {
-                input.addEventListener("input", () => {
-                    input.style.borderColor = "";
-                });
-            });
         });
 
         function install(type) {

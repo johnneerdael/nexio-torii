@@ -2,10 +2,11 @@ require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
 const path = require("path");
-const fs = require("fs");
 const { getRouter } = require("stremio-addon-sdk");
 const { addonInterface } = require("./addon");
+const { parseConfig } = require("./lib/config");
 const { selectBestVideoFile } = require("./lib/parser");
+const { resolveStorePlayback, resolveStoreSubtitle } = require("./lib/playback");
 
 const app = express();
 app.use(express.json()); 
@@ -96,105 +97,56 @@ app.get("/configure", (req, res) => {
 // directly through our backend to the Stremio video player.
 // Includes connection-drop detection to prevent memory leaks.
 //===============
-app.get("/sub/:provider/:apiKey/:hash/:fileId", async (req, res) => {
-    const { provider, apiKey, hash, fileId } = req.params;
+app.get("/sub/:amatsuPayload/:serviceIndex/:hash/:fileId", async (req, res) => {
+    const { amatsuPayload, serviceIndex, hash, fileId } = req.params;
+    const userConfig = parseConfig({ Amatsu: amatsuPayload });
+    const entry = userConfig.debridServices[parseInt(serviceIndex, 10)];
     let clientAborted = false;
-    
-    // Detect if the user closed the video player prematurely
+
     req.on("close", () => { clientAborted = true; });
-    
+
+    if (!entry) return res.status(404).send("Debrid service not found");
+
     try {
-        let downloadUrl = null;
-        let fileName = req.query.filename || "sub.srt";
-        
-        //===============
-        // REAL-DEBRID SUBTITLE RESOLUTION
-        // Fetches the torrent, finds the correct file ID, grabs the 
-        // restricted link, and unrestricts it for direct download.
-        //===============
-        if (provider === "realdebrid") {
-            let list = await axios.get("https://api.real-debrid.com/rest/1.0/torrents?limit=250", { "headers": { "Authorization": "Bearer " + apiKey } });
-            let torrent = list.data.find(t => t.hash.toLowerCase() === hash.toLowerCase());
-            
-            // Retry logic in case the torrent was just added and isn't listed yet
-            if (!torrent) {
-                await new Promise(resolve => setTimeout(resolve, 2500));
-                list = await axios.get("https://api.real-debrid.com/rest/1.0/torrents?limit=250", { "headers": { "Authorization": "Bearer " + apiKey } });
-                torrent = list.data.find(t => t.hash.toLowerCase() === hash.toLowerCase());
-            }
+        const action = await resolveStoreSubtitle({
+            entry,
+            hash,
+            fileId,
+            title: req.query.title || "",
+            fileName: req.query.filename || "sub.srt"
+        });
 
-            if (torrent) {
-                const info = await axios.get("https://api.real-debrid.com/rest/1.0/torrents/info/" + torrent.id, { "headers": { "Authorization": "Bearer " + apiKey } });
-                const fileIdx = info.data.files.findIndex(f => f.id == fileId);
-                
-                if (fileIdx !== -1) {
-                    const targetFile = info.data.files[fileIdx];
-                    if (targetFile.selected === 0) return res.status(404).send("Subtitle not selected");
+        if (action.type !== "redirect") return res.status(404).send(action.message || "Subtitle not found");
 
-                    fileName = targetFile.path;
-                    let targetLink = null;
-                    let linkCounter = 0;
-                    
-                    // Real-Debrid maps "links" to "selected files". 
-                    // We must count how many files are selected BEFORE our target file 
-                    // to find the matching unrestrict link index.
-                    for (let i = 0; i < info.data.files.length; i++) {
-                        if (i === fileIdx) { targetLink = info.data.links[linkCounter]; break; }
-                        if (info.data.files[i].selected === 1) linkCounter++;
-                    }
-
-                    if (targetLink) {
-                        const unrestrict = await axios.post("https://api.real-debrid.com/rest/1.0/unrestrict/link", new URLSearchParams({ "link": targetLink }), { "headers": { "Authorization": "Bearer " + apiKey } });
-                        downloadUrl = unrestrict.data.download;
-                    }
-                }
-            }
-        } 
-        //===============
-        // TORBOX SUBTITLE RESOLUTION
-        // Much simpler API. Direct request for the download link using file_id.
-        //===============
-        else if (provider === "torbox") {
-            let dlRes = null;
-            try {
-                dlRes = await axios.get("https://api.torbox.app/v1/api/torrents/requestdl?token=" + apiKey + "&hash=" + hash + "&file_id=" + fileId);
-            } catch (err) {
-                await new Promise(resolve => setTimeout(resolve, 2500));
-                dlRes = await axios.get("https://api.torbox.app/v1/api/torrents/requestdl?token=" + apiKey + "&hash=" + hash + "&file_id=" + fileId);
-            }
-            if (dlRes && dlRes.data && dlRes.data.data) downloadUrl = dlRes.data.data;
+        const subResponse = await axios.get(action.url, { responseType: "stream", timeout: 10000 });
+        if (clientAborted) {
+            if (subResponse.data && subResponse.data.destroy) subResponse.data.destroy();
+            return;
         }
-        
-        if (!downloadUrl) return res.status(404).send("Subtitle not found");
-        
-        // Open a stream to download the subtitle file
-        const subResponse = await axios.get(downloadUrl, { "responseType": "stream", "timeout": 10000 });
-        if (clientAborted) { if (subResponse.data?.destroy) subResponse.data.destroy(); return; }
 
-        const ext = fileName.split(".").pop().toLowerCase();
+        const ext = String(action.fileName || "sub.srt").split(".").pop().toLowerCase();
         let finalMime = subResponse.headers["content-type"];
-        
-        // Enforce strict MIME types. Some Debrid providers send "octet-stream" 
-        // which prevents Stremio from rendering the subtitles correctly.
+
         if (!finalMime || finalMime.includes("octet-stream") || finalMime.includes("plain")) {
             if (ext === "vtt") finalMime = "text/vtt";
             else if (ext === "ass" || ext === "ssa") finalMime = "text/x-ssa";
             else if (ext === "srt") finalMime = "application/x-subrip";
             else finalMime = "text/plain";
         }
-        
+
         res.setHeader("Access-Control-Allow-Origin", "*");
         res.setHeader("Content-Type", finalMime);
         res.setHeader("Cache-Control", "public, max-age=86400");
-        
-        // Pipe the stream and ensure cleanup if connection closes
+
         subResponse.data.on("error", () => res.end());
-        req.on("close", () => { if (subResponse.data?.destroy) subResponse.data.destroy(); });
+        req.on("close", () => {
+            if (subResponse.data && subResponse.data.destroy) subResponse.data.destroy();
+        });
         subResponse.data.pipe(res);
-        
-    } catch (e) { 
+
+    } catch (e) {
         console.error("[Sub Proxy Error]", e.message);
-        res.status(500).send("Error fetching subtitle data"); 
+        res.status(500).send("Error fetching subtitle data");
     }
 });
     
@@ -219,98 +171,31 @@ function serveArchiveVideo(req, res) {
 // Locates the hash on the Debrid service, determines the best file, 
 // unrestricts it, and redirects the Stremio player to the raw MP4/MKV URL.
 //===============
-app.get("/resolve/:provider/:apiKey/:hash/:episode?", async (req, res) => {
-    const { provider, apiKey, hash, episode } = req.params;
-    const requestedEp = episode || "1";
-    const magnet = "magnet:?xt=urn:btih:" + hash;
-    
-    try {
-        if (provider === "realdebrid") {
-            const listRes = await axios.get("https://api.real-debrid.com/rest/1.0/torrents?limit=250", { "headers": { "Authorization": "Bearer " + apiKey } });
-            let torrent = listRes.data.find(t => t.hash.toLowerCase() === hash.toLowerCase());
-            
-            // If the torrent is missing from RD, add it dynamically
-            if (!torrent) {
-                const add = await axios.post("https://api.real-debrid.com/rest/1.0/torrents/addMagnet", new URLSearchParams({ "magnet": magnet }), { "headers": { "Authorization": "Bearer " + apiKey } });
-                torrent = { "id": add.data.id };
-            }
-            
-            let info = await axios.get("https://api.real-debrid.com/rest/1.0/torrents/info/" + torrent.id, { "headers": { "Authorization": "Bearer " + apiKey } });
-            
-            // Clean up dead/errored torrents immediately
-            if (["magnet_error", "error", "virus", "dead"].includes(info.data.status)) {
-                await axios.delete("https://api.real-debrid.com/rest/1.0/torrents/delete/" + torrent.id, { "headers": { "Authorization": "Bearer " + apiKey } }).catch(() => null);
-                return res.status(404).send("Torrent is dead.");
-            }
-            
-            if (info.data.status !== "downloaded") {
-                // If it's waiting for file selection, automatically select all valid media and subtitle files
-                if (info.data.status === "waiting_files_selection") {
-                    const selectedIds = info.data.files.filter(f => /\.(mkv|mp4|avi|wmv|flv|webm|m4v|ts|m2ts|mov|ass|srt|ssa|vtt)$/.test((f.path || "").toLowerCase())).map(f => f.id);
-                    await axios.post("https://api.real-debrid.com/rest/1.0/torrents/selectFiles/" + torrent.id, "files=" + (selectedIds.length > 0 ? selectedIds.join(",") : "all"), { 
-                        "headers": { "Authorization": "Bearer " + apiKey, "Content-Type": "application/x-www-form-urlencoded" } 
-                    });
-                    await new Promise(resolve => setTimeout(resolve, 1500));
-                    info = await axios.get("https://api.real-debrid.com/rest/1.0/torrents/info/" + torrent.id, { "headers": { "Authorization": "Bearer " + apiKey } });
-                }
-                // If still downloading, serve the waiting video
-                if (info.data.status !== "downloaded") return serveLoadingVideo(req, res);
-            }
-            
-            // Use our parser library to find the exact episode within a potentially large batch torrent
-            const isBatch = /batch|complete|all\s+episodes/i.test(info.data.filename || "");
-            const bestFileFresh = selectBestVideoFile(info.data.files, requestedEp, 1, !isBatch);
-            
-            if (!bestFileFresh) return serveArchiveVideo(req, res);
-            
-            // If the best file wasn't selected during the initial RD process, delete the torrent
-            // so it can be re-added and re-selected correctly on the next click.
-            if (bestFileFresh.selected === 0) {
-                await axios.delete("https://api.real-debrid.com/rest/1.0/torrents/delete/" + torrent.id, { "headers": { "Authorization": "Bearer " + apiKey } }).catch(() => null);
-                return res.redirect(req.originalUrl);
-            }
-            
-            const targetFileIndex = info.data.files.findIndex(f => f.id === bestFileFresh.id);
-            let targetLink = info.data.links[0]; 
-            if (targetFileIndex !== -1) {
-                let linkCounter = 0;
-                for (let i = 0; i < info.data.files.length; i++) {
-                    if (i === targetFileIndex) { targetLink = info.data.links[linkCounter]; break; }
-                    if (info.data.files[i].selected === 1) linkCounter++;
-                }
-            }
-            if (!targetLink) return serveLoadingVideo(req, res);
+app.get("/resolve/:amatsuPayload/:serviceIndex/:hash/:episode?", async (req, res) => {
+    const { amatsuPayload, serviceIndex, hash, episode } = req.params;
+    const userConfig = parseConfig({ Amatsu: amatsuPayload });
+    const entry = userConfig.debridServices[parseInt(serviceIndex, 10)];
 
-            // Finally, unrestrict the valid link and redirect the player
-            const unrestrict = await axios.post("https://api.real-debrid.com/rest/1.0/unrestrict/link", new URLSearchParams({ "link": targetLink }), { "headers": { "Authorization": "Bearer " + apiKey } });
-            return res.redirect(unrestrict.data.download);
-        }
-        
-        if (provider === "torbox") {
-            const list = await axios.get("https://api.torbox.app/v1/api/torrents/mylist?bypass_cache=true", { "headers": { "Authorization": "Bearer " + apiKey } });
-            let torrent = list.data.data ? list.data.data.find(t => t.hash.toLowerCase() === hash.toLowerCase()) : null;
-            
-            if (!torrent) {
-                const boundary = "----WebKitFormBoundaryAmatsu";
-                try {
-                    await axios.post("https://api.torbox.app/v1/api/torrents/createtorrent", "--" + boundary + "\r\nContent-Disposition: form-data; name=\"magnet\"\r\n\r\n" + magnet + "\r\n--" + boundary + "--", { "headers": { "Authorization": "Bearer " + apiKey, "Content-Type": "multipart/form-data; boundary=" + boundary } });
-                } catch (e) { return serveLoadingVideo(req, res); }
-                return serveLoadingVideo(req, res);
-            }
-            
-            if (["error", "failed", "dead", "deleted"].includes(torrent.download_state)) return res.status(404).send("Torrent is dead.");
-            if (torrent.download_state !== "completed" && torrent.download_state !== "cached") return serveLoadingVideo(req, res);
-            
-            const isBatch = /batch|complete|all\s+episodes/i.test(torrent.name || "");
-            const bestFile = selectBestVideoFile(torrent.files, requestedEp, 1, !isBatch);
-            
-            if (!bestFile) return serveArchiveVideo(req, res);
-            const dl = await axios.get("https://api.torbox.app/v1/api/torrents/requestdl?token=" + apiKey + "&torrent_id=" + torrent.id + "&file_id=" + bestFile.id);
-            return res.redirect(dl.data.data);
-        }
-    } catch (e) { 
+    if (!entry) return res.status(404).send("Debrid service not found");
+
+    try {
+        const action = await resolveStorePlayback({
+            entry,
+            hash,
+            episode: parseInt(episode || "1", 10) || 1,
+            expectedSeason: parseInt(req.query.season || "1", 10) || 1,
+            title: req.query.title || "",
+            isMovie: req.query.movie === "1",
+            selectBestVideoFile
+        });
+
+        if (action.type === "redirect") return res.redirect(action.url);
+        if (action.type === "archive") return serveArchiveVideo(req, res);
+        if (action.type === "not_found") return res.status(404).send(action.message || "Torrent is not playable.");
+        return serveLoadingVideo(req, res);
+    } catch (e) {
         console.error("[Resolve Error] Core resolution failure: " + e.message);
-        return serveLoadingVideo(req, res); 
+        return serveLoadingVideo(req, res);
     }
 });
 

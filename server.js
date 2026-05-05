@@ -97,9 +97,9 @@ app.get("/configure", (req, res) => {
 // directly through our backend to the Stremio video player.
 // Includes connection-drop detection to prevent memory leaks.
 //===============
-app.get("/sub/:amatsuPayload/:serviceIndex/:hash/:fileId", async (req, res) => {
-    const { amatsuPayload, serviceIndex, hash, fileId } = req.params;
-    const userConfig = parseConfig({ Amatsu: amatsuPayload });
+app.get("/sub/:nexioPayload/:serviceIndex/:hash/:fileId", async (req, res) => {
+    const { nexioPayload, serviceIndex, hash, fileId } = req.params;
+    const userConfig = parseConfig({ NexioTorii: nexioPayload });
     const entry = userConfig.debridServices[parseInt(serviceIndex, 10)];
     let clientAborted = false;
 
@@ -171,9 +171,9 @@ function serveArchiveVideo(req, res) {
 // Locates the hash on the Debrid service, determines the best file, 
 // unrestricts it, and redirects the Stremio player to the raw MP4/MKV URL.
 //===============
-app.get("/resolve/:amatsuPayload/:serviceIndex/:hash/:episode?", async (req, res) => {
-    const { amatsuPayload, serviceIndex, hash, episode } = req.params;
-    const userConfig = parseConfig({ Amatsu: amatsuPayload });
+app.get("/resolve/:nexioPayload/:serviceIndex/:hash/:episode?", async (req, res) => {
+    const { nexioPayload, serviceIndex, hash, episode } = req.params;
+    const userConfig = parseConfig({ NexioTorii: nexioPayload });
     const entry = userConfig.debridServices[parseInt(serviceIndex, 10)];
 
     if (!entry) return res.status(404).send("Debrid service not found");
@@ -200,4 +200,4 @@ app.get("/resolve/:amatsuPayload/:serviceIndex/:hash/:episode?", async (req, res
 });
 
 app.use("/", getRouter(addonInterface));
-app.listen(port, "0.0.0.0", () => console.log("AMATSU ONLINE | PORT " + port));
+app.listen(port, "0.0.0.0", () => console.log("NEXIO TORII ONLINE | PORT " + port));

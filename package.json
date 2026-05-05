@@ -1,7 +1,7 @@
 {
-  "name": "amatsu-gateway",
+  "name": "nexio-torii",
   "version": "8.2.0",
-  "description": "Stateless Nyaa Gateway for Stremio",
+  "description": "Nexio Torii Stremio anime streams addon",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

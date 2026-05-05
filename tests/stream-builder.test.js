@@ -36,8 +36,8 @@ function baseInput(overrides = {}) {
             {}
         ],
         userConfig,
-        amatsuPayload: encodeConfigPayload(userConfig),
-        baseUrl: "https://amatsu.example",
+        nexioPayload: encodeConfigPayload(userConfig),
+        baseUrl: "https://nexio-torii.example",
         requestedEp: 1,
         expectedSeason: 1,
         isMovie: false,
@@ -58,10 +58,10 @@ test("buildDebridStreams emits cached and uncached streams for multiple services
     const streams = buildDebridStreams(input);
 
     assert.equal(streams.length, 2);
-    assert.equal(streams[0].name, "AMATSU [⚡ RD]\n🎥 1080p");
-    assert.equal(streams[0].url, "https://amatsu.example/resolve/" + input.amatsuPayload + "/0/ABCDEF/1?title=Example%20Show%20-%2001%20%5B1080p%5D.mkv");
+    assert.equal(streams[0].name, "NEXIO TORII [⚡ RD]\n🎥 1080p");
+    assert.equal(streams[0].url, "https://nexio-torii.example/resolve/" + input.nexioPayload + "/0/ABCDEF/1?title=Example%20Show%20-%2001%20%5B1080p%5D.mkv");
     assert.equal(streams[0].subtitles.length, 1);
-    assert.equal(streams[1].name, "AMATSU [☁️ PM]\n🎥 1080p");
+    assert.equal(streams[1].name, "NEXIO TORII [☁️ PM]\n🎥 1080p");
     assert.equal(streams[1]._isCached, false);
 });
 
@@ -76,12 +76,12 @@ test("buildDebridStreams honors hideUncached", () => {
             language: ["ENG"]
         }
     });
-    input.amatsuPayload = encodeConfigPayload(input.userConfig);
+    input.nexioPayload = encodeConfigPayload(input.userConfig);
 
     const streams = buildDebridStreams(input);
 
     assert.equal(streams.length, 1);
-    assert.equal(streams[0].name, "AMATSU [⚡ RD]\n🎥 1080p");
+    assert.equal(streams[0].name, "NEXIO TORII [⚡ RD]\n🎥 1080p");
 });
 
 test("buildDebridStreams skips Offcloud series cache without files", () => {
@@ -93,7 +93,7 @@ test("buildDebridStreams skips Offcloud series cache without files", () => {
 
     const streams = buildDebridStreams(baseInput({
         userConfig,
-        amatsuPayload: encodeConfigPayload(userConfig),
+        nexioPayload: encodeConfigPayload(userConfig),
         availabilityByEntry: [{ abcdef: { status: "cached", isCached: true, files: [] } }]
     }));
 

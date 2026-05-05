@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Amatsu Setup | Heavenly Gateway</title>
+    <title>Nexio Torii Setup</title>
 
-    <link rel="icon" type="image/png" href="/amatsu.png">
-    <link rel="shortcut icon" href="/amatsu.png">
-    <link rel="apple-touch-icon" href="/amatsu.png">
+    <link rel="icon" type="image/png" href="/nexio-torii.png">
+    <link rel="shortcut icon" href="/nexio-torii.png">
+    <link rel="apple-touch-icon" href="/nexio-torii.png">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kaisei+Tokumin:wght@400;700;800&family=Space+Mono&display=swap" rel="stylesheet">
@@ -107,6 +107,13 @@
             color: rgba(66, 165, 245, 0.8);
             font-size: 0.7rem;
             text-transform: uppercase;
+        }
+
+        .brand-logo {
+            width: min(100%, 560px);
+            max-height: 220px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 24px rgba(66, 165, 245, 0.55));
         }
 
         .bg-logo-container {
@@ -229,7 +236,7 @@
     </div>
 
     <div class="bg-logo-container">
-        <img src="/amatsu_large.png" class="bg-logo" alt="">
+        <img src="/nexio-torii.png" class="bg-logo" alt="">
     </div>
 
     <div class="perf-blob-1"></div>
@@ -238,8 +245,7 @@
     <div class="glass-card p-8 md:p-12 rounded-[2.5rem] max-w-4xl w-full relative z-10 mx-auto my-8">
 
         <div class="mb-10 md:mb-14 text-center">
-            <h1 class="text-5xl md:text-6xl font-extrabold tracking-tighter mb-2 neon-text">AMATSU</h1>
-            <p class="slogan-calligraphy mt-2">Your Nyaa Gateway</p>
+            <img src="/nexio-torii.png" class="brand-logo mx-auto" alt="Nexio Torii">
             <div class="mt-4 border-t border-white/5 w-1/3 mx-auto pt-2 opacity-30"></div>
         </div>
 
@@ -376,11 +382,8 @@
         </div>
 
         <div class="mt-8 pt-8 border-t border-gray-900 flex justify-center space-x-12 opacity-40 hover:opacity-100 transition-opacity duration-700">
-            <a href="https://github.com/mralanbourne/Amatsu" target="_blank" class="text-gray-600 hover:text-white transition-colors duration-300 transform hover:scale-110">
+            <a href="https://github.com/johnneerdael/nexio-torii" target="_blank" class="text-gray-600 hover:text-white transition-colors duration-300 transform hover:scale-110" title="GitHub">
                 <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
-            </a>
-            <a href="https://ko-fi.com/mralanbourne" target="_blank" class="text-gray-600 hover:text-blue-500 transition-colors duration-300 transform hover:scale-110">
-                <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M23.881 8.948c-.773-4.085-4.859-4.593-4.859-4.593H.723c-.604 0-.679.798-.679.798s-.082 7.324-.022 11.822c.164 2.424 2.586 2.672 2.586 2.672s8.267-.023 11.966-.049c2.438-.426 2.683-2.566 2.658-3.734 4.352.24 7.422-2.831 6.649-6.916zm-11.062 3.511c-1.246 1.453-4.011 3.976-4.011 3.976s-.121.119-.31.023c-.076-.057-.108-.09-.108-.09-.443-.441-3.368-3.049-4.034-3.954-.709-.965-1.041-2.7-.091-3.71.951-1.01 3.005-1.086 4.363.407 0 0 1.565-1.782 3.468-.963 1.904.82 1.832 3.011.723 4.311zm6.173.478c-.928.116-1.682.028-1.682.028V7.284h1.57s1.902.145 2.24 1.276c.339 1.133-.15 2.453-2.128 2.385v.003z"/></svg>
             </a>
         </div>
     </div>
@@ -526,7 +529,7 @@
                 return null;
             }
 
-            const finalConfig = { Amatsu: base64Payload };
+            const finalConfig = { NexioTorii: base64Payload };
             const configStr = encodeURIComponent(JSON.stringify(finalConfig));
             
             let host = window.location.host;

@@ -48,7 +48,7 @@ test("normalizeDebridServices drops malformed entries and keeps duplicates", () 
     ]);
 });
 
-test("parseConfig decodes Amatsu payload and normalizes greenfield config", () => {
+test("parseConfig decodes Nexio Torii payload and normalizes greenfield config", () => {
     const raw = {
         debridServices: [
             { service: "torbox", apiKey: "tb-key" },
@@ -60,13 +60,20 @@ test("parseConfig decodes Amatsu payload and normalizes greenfield config", () =
         resolutions: ["1080p"]
     };
     const payload = encodeConfigPayload(raw);
-    const parsed = parseConfig({ Amatsu: payload });
+    const parsed = parseConfig({ NexioTorii: payload });
 
     assert.deepEqual(parsed.debridServices, raw.debridServices);
     assert.equal(parsed.enableP2P, true);
     assert.equal(parsed.hideUncached, true);
     assert.deepEqual(parsed.language, ["ENG", "JPN"]);
     assert.deepEqual(parsed.resolutions, ["1080p"]);
+});
+
+test("parseConfig accepts legacy Amatsu payloads during migration", () => {
+    const raw = { debridServices: [{ service: "premiumize", apiKey: "pm-key" }] };
+    const parsed = parseConfig({ Amatsu: encodeConfigPayload(raw) });
+
+    assert.deepEqual(parsed.debridServices, raw.debridServices);
 });
 
 test("normalizeConfig removes legacy rdKey and tbKey", () => {

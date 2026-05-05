@@ -10,7 +10,7 @@ const {
     normalizeStoreFile
 } = require("../lib/debrid");
 
-test("normalizeStoreFile maps StremThru file shape for Amatsu parser", () => {
+test("normalizeStoreFile maps StremThru file shape for Nexio Torii parser", () => {
     assert.deepEqual(normalizeStoreFile({
         index: 4,
         link: "stremthru://file",
@@ -64,7 +64,7 @@ test("checkStoreTorz chunks hashes and sends StremThru store headers", async () 
     const result = await checkStoreTorz(["ABC"], { service: "premiumize", apiKey: "pm-key" }, { http, cache: false });
 
     assert.equal(calls.length, 1);
-    assert.equal(calls[0].url, "https://stremthru.13377001.xyz/v0/store/torz/check?hash=ABC");
+    assert.equal(calls[0].url, "https://stremthrufortheweak.nhyira.dev/v0/store/torz/check?hash=ABC");
     assert.equal(calls[0].options.headers["X-StremThru-Store-Name"], "premiumize");
     assert.equal(calls[0].options.headers["X-StremThru-Store-Authorization"], "Bearer pm-key");
     assert.equal(result.abc.files[0].link, "locked-link");
@@ -81,7 +81,7 @@ test("addStoreTorz posts magnet through StremThru", async () => {
 
     const result = await addStoreTorz("magnet:?xt=urn:btih:abc", { service: "alldebrid", apiKey: "ad-key" }, { http });
 
-    assert.equal(calls[0].url, "https://stremthru.13377001.xyz/v0/store/torz");
+    assert.equal(calls[0].url, "https://stremthrufortheweak.nhyira.dev/v0/store/torz");
     assert.deepEqual(calls[0].body, { link: "magnet:?xt=urn:btih:abc" });
     assert.equal(result.status, "queued");
 });

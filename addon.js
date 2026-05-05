@@ -1,5 +1,5 @@
 //===============
-// AMATSU STREMIO ADDON - CORE LOGIC
+// NEXIO TORII STREMIO ADDON - CORE LOGIC
 // (Consistent UI + StremThru Cache + Strict Episode Enforcing + Dynamic Season & Episode Extraction)
 // P2P Integration: Direct infoHash handover to Stremio including Tracker-Injection.
 // Explicit Resolution Toggles & Fixed Movie Manifest.
@@ -159,34 +159,34 @@ function sanitizeSearchQuery(title) {
 // Defines the capabilities, catalogs, and ID prefixes the addon supports.
 //===============
 const manifest = {
-    "id": "org.community.amatsu", "version": "9.6.1", "name": "Amatsu", "logo": BASE_URL + "/amatsu.png",
-    "description": "The ultimate Nyaa Gateway. Parallel Search for Anime, Live-Action, and more.",
+    "id": "org.community.nexiotorii", "version": "9.6.1", "name": "Nexio Torii", "logo": BASE_URL + "/nexio-torii.png",
+    "description": "Anime streams from Nyaa through StremThru-backed premium unlockers and optional P2P.",
     "types": ["anime", "movie", "series"],
     "resources": [
         "catalog",
         {
             "name": "meta",
             "types": ["anime", "movie", "series"],
-            "idPrefixes": ["anilist:", "amatsu_raw:"]
+            "idPrefixes": ["anilist:", "nexio_raw:"]
         },
         {
             "name": "stream",
             "types": ["anime", "movie", "series"],
-            "idPrefixes": ["anilist:", "nyaa:", "kitsu:", "tt", "amatsu_raw:"]
+            "idPrefixes": ["anilist:", "nyaa:", "kitsu:", "tt", "nexio_raw:"]
         }
     ],
     "catalogs": [
-        { "id": "amatsu_seasonal_series", "type": "anime", "name": "Amatsu Current Season" },
-        { "id": "amatsu_airing_series", "type": "anime", "name": "Amatsu Currently Airing" },
-        { "id": "amatsu_trending_series", "type": "anime", "name": "Amatsu Trending Series" },
-        { "id": "amatsu_top_series", "type": "anime", "name": "Amatsu Top Rated Series" },
-        { "id": "amatsu_trending_movie", "type": "movie", "name": "Amatsu Trending Movies" },
-        { "id": "amatsu_top_movie", "type": "movie", "name": "Amatsu Top Rated Movies" },
-        { "id": "amatsu_search", "type": "anime", "name": "Amatsu Search", "extra": [{ "name": "search", "isRequired": true }] },
-        { "id": "amatsu_search", "type": "movie", "name": "Amatsu Search", "extra": [{ "name": "search", "isRequired": true }] },
-        { "id": "amatsu_search", "type": "series", "name": "Amatsu Series", "extra": [{ "name": "search", "isRequired": true }] }
+        { "id": "nexio_seasonal_series", "type": "anime", "name": "Nexio Torii Current Season" },
+        { "id": "nexio_airing_series", "type": "anime", "name": "Nexio Torii Currently Airing" },
+        { "id": "nexio_trending_series", "type": "anime", "name": "Nexio Torii Trending Series" },
+        { "id": "nexio_top_series", "type": "anime", "name": "Nexio Torii Top Rated Series" },
+        { "id": "nexio_trending_movie", "type": "movie", "name": "Nexio Torii Trending Movies" },
+        { "id": "nexio_top_movie", "type": "movie", "name": "Nexio Torii Top Rated Movies" },
+        { "id": "nexio_search", "type": "anime", "name": "Nexio Torii Search", "extra": [{ "name": "search", "isRequired": true }] },
+        { "id": "nexio_search", "type": "movie", "name": "Nexio Torii Search", "extra": [{ "name": "search", "isRequired": true }] },
+        { "id": "nexio_search", "type": "series", "name": "Nexio Torii Series", "extra": [{ "name": "search", "isRequired": true }] }
     ],
-    "config": [{ "key": "Amatsu", "type": "text", "title": "Amatsu Internal Payload" }],
+    "config": [{ "key": "NexioTorii", "type": "text", "title": "Nexio Torii Internal Payload" }],
     "behaviorHints": { "configurable": true, "configurationRequired": true }
 };
 
@@ -202,32 +202,32 @@ builder.defineCatalogHandler(async ({ type, id, extra, config }) => {
     try {
         const userConfig = parseConfig(config);
 
-        if (id === "amatsu_seasonal_series" && userConfig.showSeasonalSeries !== false) {
+        if (id === "nexio_seasonal_series" && userConfig.showSeasonalSeries !== false) {
             const results = await getSeasonalAnime("anime");
             return { "metas": applyTitlePreference(results.filter(m => m.type === type), userConfig), "cacheMaxAge": 14400 };
         }
-        if (id === "amatsu_airing_series" && userConfig.showAiringSeries !== false) {
+        if (id === "nexio_airing_series" && userConfig.showAiringSeries !== false) {
             const results = await getAiringAnime("anime");
             return { "metas": applyTitlePreference(results.filter(m => m.type === type), userConfig), "cacheMaxAge": 14400 };
         }
-        if (id === "amatsu_trending_series" && userConfig.showTrendingSeries !== false) {
+        if (id === "nexio_trending_series" && userConfig.showTrendingSeries !== false) {
             const results = await getTrendingAnime("anime");
             return { "metas": applyTitlePreference(results.filter(m => m.type === type), userConfig), "cacheMaxAge": 21600 };
         }
-        if (id === "amatsu_top_series" && userConfig.showTopSeries !== false) {
+        if (id === "nexio_top_series" && userConfig.showTopSeries !== false) {
             const results = await getTopAnime("anime");
             return { "metas": applyTitlePreference(results.filter(m => m.type === type), userConfig), "cacheMaxAge": 86400 };
         }
-        if (id === "amatsu_trending_movie" && userConfig.showTrendingMovies !== false) {
+        if (id === "nexio_trending_movie" && userConfig.showTrendingMovies !== false) {
             const results = await getTrendingAnime("movie");
             return { "metas": applyTitlePreference(results.filter(m => m.type === type), userConfig), "cacheMaxAge": 21600 };
         }
-        if (id === "amatsu_top_movie" && userConfig.showTopMovies !== false) {
+        if (id === "nexio_top_movie" && userConfig.showTopMovies !== false) {
             const results = await getTopAnime("movie");
             return { "metas": applyTitlePreference(results.filter(m => m.type === type), userConfig), "cacheMaxAge": 86400 };
         }
 
-        if (id === "amatsu_search" && extra.search) {
+        if (id === "nexio_search" && extra.search) {
             const nyaaPromise = searchNyaaForAnime(extra.search).catch(() => []);
             const timeoutPromise = new Promise(resolve => setTimeout(() => resolve([]), 3500));
 
@@ -256,7 +256,7 @@ builder.defineCatalogHandler(async ({ type, id, extra, config }) => {
             // Fallback generation for obscure searches
             if (results.length < 2 && nyaaRes.length > 0) {
                 results.push({
-                    "id": `amatsu_raw:${type}:${toBase64Safe(extra.search)}`,
+                    "id": `nexio_raw:${type}:${toBase64Safe(extra.search)}`,
                     "type": type,
                     "name": extra.search + " (RAW SEARCH)",
                     "poster": `https://dummyimage.com/600x900/1a1a1a/42a5f5.png?text=${encodeURIComponent(extra.search)}\nRaw+Search`,
@@ -282,7 +282,7 @@ builder.defineMetaHandler(async ({ type, id, config }) => {
     try {
         const userConfig = parseConfig(config);
 
-        if (id.startsWith("amatsu_raw:")) {
+        if (id.startsWith("nexio_raw:")) {
             const parts = id.split(":");
             const mType = parts[1];
             const query = fromBase64Safe(parts[2]);
@@ -334,7 +334,7 @@ builder.defineMetaHandler(async ({ type, id, config }) => {
             meta.type = "anime";
             const jikanEps = meta.idMal ? await fetchEpisodeDetails(meta.idMal).catch(() => ({})) : {};
             const epMeta = meta.epMeta || {};
-            const defaultThumb = meta.background || meta.poster || "https://dummyimage.com/600x337/1a1a1a/42a5f5.png?text=AMATSU+EPISODE";
+            const defaultThumb = meta.background || meta.poster || "https://dummyimage.com/600x337/1a1a1a/42a5f5.png?text=NEXIO+TORII+EPISODE";
             meta.videos = Array.from({ "length": meta.episodes || 12 }, (_, i) => {
                 const epNum = i + 1;
                 const jData = jikanEps[epNum] || {};
@@ -363,10 +363,10 @@ builder.defineMetaHandler(async ({ type, id, config }) => {
 //===============
 builder.defineStreamHandler(async ({ type, id, config }) => {
     try {
-        console.log(`\n[AMATSU FORENSICS] ===== NEUE SUCHE =====`);
-        console.log(`[AMATSU FORENSICS] ID: ${id} | Type: ${type}`);
+        console.log(`\n[NEXIO TORII FORENSICS] ===== NEUE SUCHE =====`);
+        console.log(`[NEXIO TORII FORENSICS] ID: ${id} | Type: ${type}`);
 
-        if (!id.startsWith("anilist:") && !id.startsWith("nyaa:") && !id.startsWith("kitsu:") && !id.startsWith("tt") && !id.startsWith("amatsu_raw:")) return { "streams": [] };
+        if (!id.startsWith("anilist:") && !id.startsWith("nyaa:") && !id.startsWith("kitsu:") && !id.startsWith("tt") && !id.startsWith("nexio_raw:")) return { "streams": [] };
 
         const userConfig = parseConfig(config);
         
@@ -393,9 +393,9 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
                 const kRes = await axios.get(`https://kitsu.io/api/edge/anime/${kitsuId}`, { timeout: 4000 });
                 searchTitleFallback = kRes.data?.data?.attributes?.canonicalTitle || kRes.data?.data?.attributes?.titles?.en_jp;
                 requestedEp = parseInt(parts[2], 10) || 1;
-                console.log(`[AMATSU FORENSICS] Kitsu Match erfolgreich: ${searchTitleFallback}`);
+                console.log(`[NEXIO TORII FORENSICS] Kitsu Match erfolgreich: ${searchTitleFallback}`);
             } catch (e) { }
-        } else if (id.startsWith("amatsu_raw:")) {
+        } else if (id.startsWith("nexio_raw:")) {
             const mType = parts[1];
             let rawPayload = parts[2];
             if (rawPayload && rawPayload.includes("-")) {
@@ -483,7 +483,7 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
         }
 
         if (!freshMeta && !searchTitleFallback) {
-            console.log(`[AMATSU FORENSICS] Abbruch: Keine Metadaten oder Fallback-Titel gefunden.`);
+            console.log(`[NEXIO TORII FORENSICS] Abbruch: Keine Metadaten oder Fallback-Titel gefunden.`);
             return { "streams": [] };
         }
 
@@ -581,7 +581,7 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
                 // Fast-Fail Detection
                 if (duration > 11000 && deduplicated.size === 0) {
                     isTrackerBlocked = true;
-                    console.log(`[AMATSU FAST FAIL] Tracker-Block detektiert. Dauer: ${duration}ms. Breche Kaskade ab.`);
+                    console.log(`[NEXIO TORII FAST FAIL] Tracker-Block detektiert. Dauer: ${duration}ms. Breche Kaskade ab.`);
                 }
             };
 
@@ -670,7 +670,7 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
                 })
             )
         );
-        const amatsuPayload = encodeConfigPayload(userConfig);
+        const nexioPayload = encodeConfigPayload(userConfig);
 
         const flags = { "GER": "🇩🇪", "ITA": "🇮🇹", "FRE": "🇫🇷", "SPA": "🇪🇸", "LAT": "💃🏻", "RUS": "🇷🇺", "POR": "🇵🇹", "ARA": "🇸🇦", "CHI": "🇨🇳", "KOR": "🇰🇷", "HIN": "🇮🇳", "POL": "🇵🇱", "NLD": "🇳🇱", "TUR": "🇹🇷", "VIE": "🇻🇳", "IND": "🇮🇩", "JPN": "🇯🇵", "ENG": "🇬🇧", "MULTI": "🌍" };
         const userLangs = Array.isArray(userConfig.language) ? userConfig.language : [userConfig.language || "ENG"];
@@ -708,7 +708,7 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
             // Attaches active trackers enabling direct torrent streaming via Stremio.
             //===============
             if (userConfig.enableP2P) {
-                const p2pName = `AMATSU [📡 P2P]\n🎥 ${res}`;
+                const p2pName = `NEXIO TORII [📡 P2P]\n🎥 ${res}`;
                 const p2pDesc = `${flag} Nyaa | 📡 P2P${batchStr}\n📄 ${t.title}\n💾 ${t.size} | 👥 ${seeders} Seeds`;
                 
                 streams.push({
@@ -722,7 +722,7 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
                         "tracker:udp://exodus.desync.com:6969/announce",
                         "dht:" + t.hash
                     ],
-                    "behaviorHints": { "bingeGroup": "amatsu_p2p_" + t.hash },
+                    "behaviorHints": { "bingeGroup": "nexio_torii_p2p_" + t.hash },
                     "_bytes": bytes, "_lang": streamLang, "_isCached": false, "_res": res, "_prog": 0, "_seeders": seeders, "_isBatch": isBatch
                 });
             }
@@ -733,7 +733,7 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
             torrents,
             availabilityByEntry,
             userConfig,
-            amatsuPayload,
+            nexioPayload,
             baseUrl: BASE_URL,
             requestedEp,
             expectedSeason,
@@ -749,8 +749,8 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
         });
         streams.push(...debridStreams);
 
-        console.log(`[AMATSU FORENSICS] Episoden-Filter hat ${epDropCount} nicht-passende Einträge gelöscht.`);
-        console.log(`[AMATSU FORENSICS] Finale Streams an Stremio gesendet: ${streams.length}\n`);
+        console.log(`[NEXIO TORII FORENSICS] Episoden-Filter hat ${epDropCount} nicht-passende Einträge gelöscht.`);
+        console.log(`[NEXIO TORII FORENSICS] Finale Streams an Stremio gesendet: ${streams.length}\n`);
 
         //===============
         // 3-PHASE SORTER (SCORING)

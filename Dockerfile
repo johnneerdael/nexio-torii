@@ -5,10 +5,14 @@
 #===============
 FROM node:18-alpine
 
+LABEL org.opencontainers.image.title="Nexio Torii" \
+      org.opencontainers.image.description="Stremio anime streams addon backed by Nyaa and StremThru premium unlockers" \
+      org.opencontainers.image.source="https://github.com/johnneerdael/nexio-torii"
+
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --omit=dev
+RUN npm ci --omit=dev
 
 COPY . .
 RUN mkdir -p static && \

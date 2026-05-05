@@ -7,13 +7,14 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  IMAGE_NAME: ghcr.io/johnneerdael/nexio-torii
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-     
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,4 +32,6 @@ jobs:
           context: .
           push: true
           no-cache: true
-          tags: ghcr.io/mralanbourne/amatsu:latest
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}

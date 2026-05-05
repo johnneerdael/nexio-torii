@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <strong>The definitive high-performance bridge between Nyaa.si and Stremio. Access the world's largest library of high-quality Anime and Live Action Content via Real-Debrid, Torbox, or Direct P2P BitTorrent with bulletproof episode parsing, a strict 3-phase sorting engine, multi-language subtitle injection, and zero server-side tracking.</strong><br />
+  <strong>The definitive high-performance bridge between Nyaa.si and Stremio. Access the world's largest library of high-quality Anime and Live Action Content via StremThru-backed premium unlockers, including RealDebrid, TorBox, AllDebrid, Premiumize, Debrid-Link, Debrider, EasyDebrid, Offcloud, PikPak, or Direct P2P BitTorrent with bulletproof episode parsing, a strict 3-phase sorting engine, multi-language subtitle injection, and zero server-side tracking.</strong><br />
   <strong>🍏 Fully Compatible with Stremio Web (Linux / iOS / iPadOS) & AIOStreams 💙</strong>
 </p>
 
@@ -37,7 +37,7 @@
 > 1. 🖼️ **The "Blue Posters" (Working as intended):** During a global search, obscure Nyaa results will appear as blue text-only posters to keep the search lightning fast. **This is not a bug!** The real Posters, description, and episode count are fetched dynamically the moment you click on the title.
 > 2. 🎭 **Mismatched Metadata:** Because the addon matches messy P2P titles against strict databases like AniList, it will sometimes guess wrong and display the wrong poster in the catalog. **Don't panic!** The actual video streams are fetched directly from Nyaa based on the raw title, so the video content remains correct.
 > 3. 👻 **Dynamic Episode Discovery:** If metadata APIs don't know how many episodes a series has (common for OVAs or new releases), Amatsu scrapes Nyaa titles to detect the actual episode count dynamically.
-> 4. 🎬 **The "Loading" Video (Uncached Torrents):** If you click an uncached stream (`☁️ Download`), Stremio will start playing a looping "Waiting/Loading" video. **This is not an error!** It means Amatsu sent the torrent to your Debrid cloud. Wait a bit, back out, and click again to see the live progress (e.g., `[⏳ 45% RD]`) or Check your Debrid Dashboard.
+> 4. 🎬 **The "Loading" Video (Uncached Torrents):** If you click an uncached stream (`☁️ Download`), Stremio will start playing a looping "Waiting/Loading" video. **This is not an error!** It means Amatsu sent the torrent to your Debrid cloud. Wait a bit, back out, and click again to retry playback after the provider finishes caching it.
 
 > [!IMPORTANT]
 > ### 🔒 Privacy & Zero-Knowledge Security
@@ -49,7 +49,7 @@
 
 ### 🌙 Quick Start
 1. Open the [Community Instance](https://amatsu.ruka.pw).
-2. Enter your Real-Debrid and / or Torbox API Key, **OR** toggle the **"Enable Simple P2P"** option if you do not have a Debrid subscription.
+2. Add one or more premium unlocker accounts under **Providers & Access**, **OR** toggle the **"Enable Simple P2P"** option if you do not have a Debrid subscription.
 3. Select your **Preferred Languages** (e.g., GER, JPN, ENG) from the setup grid. Order matters!
 4. Choose your catalog preferences (Trending / Top Rated).
 5. Click "Install" or copy your manifest url to add your personalized configuration to Stremio.
@@ -63,7 +63,7 @@
 * **📦 Bulletproof Batch Routing:** Say goodbye to episode hijacking. Amatsu intelligently recognizes international batch formats (like Spanish `01 a 12` or `01 to 12`) and isolates exact individual files inside massive 100+ episode torrent chunks.
 * **⛩️ Aggressive Unicode Sanitization:** Advanced reverse-digit extraction safely captures Japanese volume markers (第, 巻), single-character tags (E05), and effortlessly matches heavily punctuated titles by normalizing all special characters.
 * **🛡️ Precision Subtitle Proxy:** External `.ass`, `.srt`, `.vtt`, and `.ssa` files are automatically scrubbed, proxied with bandwidth-leak protection, and injected into the Stremio player as selectable tracks.
-* **⚡ Debrid API Protection:** Built-in Promise deduplication and LRU caching protect your Real-Debrid and Torbox accounts from rate limits during heavy binge-watching sessions.
+* **⚡ Debrid API Protection:** Built-in Promise deduplication and LRU caching protect your premium unlocker accounts from rate limits during heavy binge-watching sessions.
 
 ---
 
@@ -86,7 +86,7 @@ services:
       - NODE_ENV=production
       - PORT=7002
       - BASE_URL=[https://amatsu.ruka.pw](https://amatsu.ruka.pw)
-      - ROOT_TORBOX_KEY=your_torbox_api_key
+      - STREMTHRU_URL=https://stremthru.13377001.xyz
     logging:
       driver: "json-file"
       options:
@@ -97,7 +97,7 @@ services:
 ```
 BASE_URL: REQUIRED. The public URL of your deployment (e.g. https://amatsu.ruka.pw).
 
-ROOT_TORBOX_KEY: Optional. Master Torbox API Key utilized for backend cache approximations cause RD is restrictive with their API.
+STREMTHRU_URL: Optional. StremThru instance used for all premium unlocker API calls. Defaults to https://stremthru.13377001.xyz.
 
 PORT: Optional. Defaults to 7002.
 

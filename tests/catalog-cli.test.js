@@ -42,3 +42,20 @@ test("anime map refresh cli writes a validated map from local source files", () 
     const asset = JSON.parse(fs.readFileSync(mapPath, "utf8"));
     assert.equal(asset.indexes.byAnidb["69"], "12");
 });
+
+test("catalog ingest backfill mode runs without the daily limit argument", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nexio-catalog-backfill-cli-"));
+    const dbPath = path.join(dir, "catalog.sqlite");
+
+    const result = spawnSync(process.execPath, [
+        "scripts/catalog-ingest.js",
+        "--source", "none",
+        "--mode", "backfill",
+        "--db", dbPath,
+        "--max-pages", "2",
+        "--page-delay-ms", "0"
+    ], { encoding: "utf8" });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /source=none mode=backfill scanned=0/);
+});

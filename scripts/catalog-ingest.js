@@ -5,6 +5,11 @@ const { runIngestion } = require("../lib/catalog/ingest");
 const nyaa = require("../lib/catalog/source/nyaa");
 const animetosho = require("../lib/catalog/source/animetosho");
 const tokyotosho = require("../lib/catalog/source/tokyotosho");
+const {
+    fetchAnimeToshoBackfill,
+    fetchNyaaBackfill,
+    fetchTokyoToshoBackfill
+} = require("../lib/catalog/source/backfill");
 
 function parseArgs(argv) {
     const args = { source: "all", mode: "daily", live: false };
@@ -17,6 +22,9 @@ function parseArgs(argv) {
         else if (arg === "--mode") args.mode = argv[++i];
         else if (arg === "--limit") args.limit = parseInt(argv[++i], 10);
         else if (arg === "--page") args.page = parseInt(argv[++i], 10);
+        else if (arg === "--max-pages") args.maxPages = parseInt(argv[++i], 10);
+        else if (arg === "--page-delay-ms") args.pageDelayMs = parseInt(argv[++i], 10);
+        else if (arg === "--animetosho-tsv-url") args.animeToshoTsvUrl = argv[++i];
     }
     return args;
 }
@@ -31,9 +39,22 @@ function limited(items, limit) {
     return Number.isFinite(limit) && limit > 0 ? items.slice(0, limit) : items;
 }
 
+function backfillOptions(args) {
+    return {
+        maxPages: Number.isFinite(args.maxPages) ? args.maxPages : undefined,
+        pageDelayMs: Number.isFinite(args.pageDelayMs) ? args.pageDelayMs : undefined,
+        animeToshoTsvUrl: args.animeToshoTsvUrl
+    };
+}
+
 function fetcherFor(source, args) {
     if (!args.live) {
         return async () => [];
+    }
+    if (args.mode === "backfill") {
+        if (source === "nyaa") return async () => fetchNyaaBackfill(backfillOptions(args));
+        if (source === "animetosho") return async () => fetchAnimeToshoBackfill(backfillOptions(args));
+        if (source === "tokyotosho") return async () => fetchTokyoToshoBackfill(backfillOptions(args));
     }
     if (source === "nyaa") {
         return async () => limited(await nyaa.fetchListingPage(args.page || 1, "1_0", { timeoutMs: 10000 }), args.limit);
@@ -63,7 +84,7 @@ async function main() {
 
     const sources = sourceList(args.source);
     if (sources.length === 0) {
-        console.log("[CATALOG] source=none mode=init scanned=0 upserted=0 matched=0 failed=0");
+        console.log(`[CATALOG] source=none mode=${args.mode} scanned=0 upserted=0 matched=0 failed=0`);
         return;
     }
 

@@ -22,7 +22,9 @@ function main() {
     const sourceItems = count(db, "SELECT COUNT(*) AS count FROM source_items");
     const identities = count(db, "SELECT COUNT(*) AS count FROM torrent_identities");
     const episodes = count(db, "SELECT COUNT(*) AS count FROM torrent_episode_matches");
-    console.log(`[CATALOG_VALIDATE] source_items=${sourceItems} torrent_identities=${identities} episode_matches=${episodes}`);
+    const dropped = count(db, "SELECT COUNT(*) AS count FROM dropped_source_items");
+    const resolutionCache = count(db, "SELECT COUNT(*) AS count FROM identity_resolution_cache");
+    console.log(`[CATALOG_VALIDATE] source_items=${sourceItems} torrent_identities=${identities} episode_matches=${episodes} dropped_source_items=${dropped} identity_resolution_cache=${resolutionCache}`);
 
     let missingSource = false;
     for (const source of ["nyaa", "animetosho", "tokyotosho"]) {
@@ -33,7 +35,7 @@ function main() {
             JOIN torrent_identities ti ON ti.info_hash = si.info_hash
             WHERE si.source = ?
         `, [source]);
-        console.log(`[CATALOG_VALIDATE] source=${source} rows=${rows} mapped=${mapped}`);
+        console.log(`[CATALOG_VALIDATE] source=${source} source_items=${rows} mapped=${mapped}`);
         if (args.requireSource.includes(source) && rows === 0) missingSource = true;
     }
 

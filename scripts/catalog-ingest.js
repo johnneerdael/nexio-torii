@@ -75,7 +75,7 @@ async function main() {
             mode: args.mode,
             fetchItems: fetcherFor(source, args)
         });
-        console.log(`[CATALOG] source=${source} mode=${args.mode} scanned=${result.scanned} upserted=${result.upserted} matched=${result.matched} failed=${result.failed}`);
+        console.log(`[CATALOG] source=${source} mode=${args.mode} scanned=${result.scanned} upserted=${result.upserted} matched=${result.matched} dropped_unmapped=${result.droppedUnmapped} duplicate_skipped=${result.duplicateSkipped} failed=${result.failed}`);
     }
 }
 

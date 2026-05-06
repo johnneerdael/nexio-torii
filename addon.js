@@ -162,7 +162,7 @@ function sanitizeSearchQuery(title) {
 // Defines the capabilities, catalogs, and ID prefixes the addon supports.
 //===============
 const manifest = {
-    "id": "org.community.nexiotorii", "version": "9.6.1", "name": "Nexio Torii", "logo": BASE_URL + "/nexio-torii.png",
+    "id": "org.community.nexiotorii", "version": "9.6.1", "name": "Nexio Torii", "logo": BASE_URL + "/favicon.png",
     "description": "Anime streams from Nyaa through StremThru-backed premium unlockers and optional P2P.",
     "types": ["anime", "movie", "series"],
     "resources": [

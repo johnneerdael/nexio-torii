@@ -36,11 +36,24 @@ services:
       - "ANIME_MAP_PATH=/app/data/anime/nexio-anime-map-v1.json"
       - "ANIME_MAP_PROVENANCE_PATH=/app/data/anime/nexio-anime-map-provenance.json"
       - "CATALOG_DAILY_INTERVAL_MS=86400000"
+      - "CATALOG_DAILY_LIMIT=${CATALOG_DAILY_LIMIT:-100}"
+      - "CATALOG_BACKFILL_MAX_PAGES=${CATALOG_BACKFILL_MAX_PAGES:-1000}"
+      - "CATALOG_BACKFILL_PAGE_DELAY_MS=${CATALOG_BACKFILL_PAGE_DELAY_MS:-250}"
+      - "ANIMETOSHO_TSV_URL=${ANIMETOSHO_TSV_URL:-}"
       - "TMDB_API_KEY=${TMDB_API_KEY:-}"
       - "TMDB_API_URL=${TMDB_API_URL:-https://api.themoviedb.org/3}"
     volumes:
       - "nexio-torii-cache:/app/data"
-    command: ["npm", "run", "catalog:daily", "--", "--limit", "25"]
+    command:
+      [
+        "npm", "run", "catalog:daily", "--",
+        "--source", "all",
+        "--mode", "daily",
+        "--live",
+        "--limit", "${CATALOG_DAILY_LIMIT:-100}",
+        "--backfill-max-pages", "${CATALOG_BACKFILL_MAX_PAGES:-1000}",
+        "--backfill-page-delay-ms", "${CATALOG_BACKFILL_PAGE_DELAY_MS:-250}"
+      ]
     logging:
       driver: "json-file"
       options:

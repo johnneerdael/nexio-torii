@@ -56,3 +56,14 @@ test("catalog database creates resolution cache and drop tables", () => {
     db.close();
     closeCatalogDatabaseForTests();
 });
+
+test("identity resolution cache stores query and candidate diagnostics", () => {
+    const db = getCatalogDatabase({ dbPath: ":memory:" });
+    const columns = db.prepare("PRAGMA table_info(identity_resolution_cache)").all().map(column => column.name);
+
+    assert.ok(columns.includes("query_json"));
+    assert.ok(columns.includes("candidate_json"));
+
+    db.close();
+    closeCatalogDatabaseForTests();
+});

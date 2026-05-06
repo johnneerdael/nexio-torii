@@ -114,3 +114,42 @@ test("stale cache returns cache and schedules background refresh", async () => {
 
     closeDatabaseForTests();
 });
+
+test("empty scrape result is throttled for empty search ttl", async () => {
+    const database = db();
+    let scrapeCalls = 0;
+
+    const first = await getTorrentsForStream({
+        db: database,
+        mediaKey: "missing-media",
+        scrape: async () => {
+            scrapeCalls++;
+            return [];
+        },
+        cacheManager: createCacheStateManager({ db: database, now: () => 10_000 }),
+        now: 10_000,
+        freshTtlMs: 1_000,
+        staleTtlMs: 60_000,
+        emptyTtlMs: 60_000
+    });
+
+    const second = await getTorrentsForStream({
+        db: database,
+        mediaKey: "missing-media",
+        scrape: async () => {
+            scrapeCalls++;
+            return [];
+        },
+        cacheManager: createCacheStateManager({ db: database, now: () => 20_000 }),
+        now: 20_000,
+        freshTtlMs: 1_000,
+        staleTtlMs: 60_000,
+        emptyTtlMs: 60_000
+    });
+
+    assert.equal(first.source, "foreground_scrape");
+    assert.equal(second.source, "empty_cache");
+    assert.equal(scrapeCalls, 1);
+
+    closeDatabaseForTests();
+});

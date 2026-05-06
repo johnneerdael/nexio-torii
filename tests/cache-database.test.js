@@ -28,6 +28,7 @@ test("initializeDatabase creates torrent and debrid cache tables", () => {
     assert.ok(tables.includes("torrent_candidates"));
     assert.ok(tables.includes("debrid_availability"));
     assert.ok(tables.includes("scrape_locks"));
+    assert.ok(tables.includes("empty_searches"));
 
     closeDatabaseForTests();
 });

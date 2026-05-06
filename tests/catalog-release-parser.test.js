@@ -27,3 +27,28 @@ test("parseReleaseTitle returns null title for blank input", async () => {
     assert.equal(parsed.title, null);
     assert.deepEqual(parsed.episodes, []);
 });
+
+test("parseReleaseTitle flags support uploads before metadata lookup", async () => {
+    const parsed = await parseReleaseTitle("[KOTEX] Kanpekisugite Kawaige ga Nai Subs+Fonts for ReinForce [BD].zip");
+
+    assert.equal(parsed.isSupportUpload, true);
+    assert.equal(parsed.dropReason, "support_upload");
+    assert.deepEqual(parsed.queryTitles, []);
+});
+
+test("parseReleaseTitle adds query variants from aliases and season hints", async () => {
+    const parsed = await parseReleaseTitle("[Judas] Saikyou no Ousama, Nidome no Jinsei wa Nani o Suru (The Beginning After the End) - S02E06 [1080p]");
+
+    assert.equal(parsed.isSupportUpload, false);
+    assert.deepEqual(parsed.aliases, ["The Beginning After the End"]);
+    assert.deepEqual(parsed.seasonHints, ["2nd Season"]);
+    assert.equal(parsed.queryTitles[0], "The Beginning After the End 2nd Season");
+    assert.ok(parsed.queryTitles.includes("The Beginning After the End"));
+});
+
+test("parseReleaseTitle rejects numeric-only parsed titles", async () => {
+    const parsed = await parseReleaseTitle("1");
+
+    assert.equal(parsed.dropReason, "invalid_parsed_title");
+    assert.deepEqual(parsed.queryTitles, []);
+});

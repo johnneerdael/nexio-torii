@@ -129,11 +129,13 @@ npm run catalog:validate -- --db data/catalog.sqlite --require-source nyaa --req
 
 Docker ingestion uses the same `/app/data` volume as the addon, but it does not change runtime stream behavior.
 
-Copy or mount the anime map into the data volume before first run:
+Copy the anime map into the named Docker data volume before first run if you want identity matches during Docker ingestion:
 
 ```bash
-mkdir -p data/anime
-cp /Users/jneerdael/Scripts/nexio/app/src/main/assets/anime/nexio-anime-map-v1.json data/anime/nexio-anime-map-v1.json
+docker compose run --rm \
+  -v /Users/jneerdael/Scripts/nexio/app/src/main/assets/anime/nexio-anime-map-v1.json:/tmp/nexio-anime-map-v1.json:ro \
+  nexio-torii-ingest \
+  sh -lc 'mkdir -p /app/data/anime && cp /tmp/nexio-anime-map-v1.json /app/data/anime/nexio-anime-map-v1.json'
 ```
 
 Run the one-shot ingestion container:

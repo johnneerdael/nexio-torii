@@ -42,3 +42,28 @@ test("upsertSourceItems writes rows idempotently", () => {
     db.close();
     closeCatalogDatabaseForTests();
 });
+
+test("upsertSourceItems allows multiple source rows with the same hash", () => {
+    const db = getCatalogDatabase({ dbPath: ":memory:" });
+    const rows = upsertSourceItems(db, [
+        {
+            source: "animetosho",
+            sourceItemId: "42",
+            infoHash: "abcdef0123456789abcdef0123456789abcdef01",
+            title: "Example - 01",
+            raw: {}
+        },
+        {
+            source: "animetosho",
+            sourceItemId: "43",
+            infoHash: "abcdef0123456789abcdef0123456789abcdef01",
+            title: "Example - 01 Duplicate Source Row",
+            raw: {}
+        }
+    ], 2000);
+
+    assert.equal(rows, 2);
+    assert.equal(db.prepare("SELECT COUNT(*) AS count FROM source_items").get().count, 2);
+    db.close();
+    closeCatalogDatabaseForTests();
+});

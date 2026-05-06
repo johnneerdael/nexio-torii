@@ -1,0 +1,13 @@
+[
+  {
+    "id": 77,
+    "title": "[Group] Example Anime - 01 [1080p]",
+    "info_hash": "abcdef0123456789abcdef0123456789abcdef02",
+    "torrent_url": "https://storage.animetosho.org/torrent/abcdef0123456789abcdef0123456789abcdef02/torrent.torrent",
+    "magnet_uri": "magnet:?xt=urn:btih:abcdef0123456789abcdef0123456789abcdef02",
+    "total_size": 1234,
+    "timestamp": 1778070000,
+    "anidb_aid": 1,
+    "anidb_eid": 100
+  }
+]

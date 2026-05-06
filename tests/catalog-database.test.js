@@ -30,3 +30,29 @@ test("catalog database uses a separate path from runtime cache by default", () =
 
     assert.equal(resolved.endsWith(path.join("data", "catalog.sqlite")), true);
 });
+
+test("catalog database stores one canonical source row per info hash", () => {
+    const db = getCatalogDatabase({ dbPath: ":memory:" });
+    const columns = db.prepare("PRAGMA table_info(source_items)").all();
+    const infoHashColumn = columns.find(column => column.name === "info_hash");
+
+    assert.equal(infoHashColumn.pk, 1);
+    assert.ok(columns.some(column => column.name === "source_priority"));
+    assert.ok(columns.some(column => column.name === "stable_provider"));
+    assert.ok(columns.some(column => column.name === "stable_id"));
+    assert.ok(columns.some(column => column.name === "parsed_json"));
+
+    db.close();
+    closeCatalogDatabaseForTests();
+});
+
+test("catalog database creates resolution cache and drop tables", () => {
+    const db = getCatalogDatabase({ dbPath: ":memory:" });
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all().map(row => row.name);
+
+    assert.ok(tables.includes("identity_resolution_cache"));
+    assert.ok(tables.includes("dropped_source_items"));
+
+    db.close();
+    closeCatalogDatabaseForTests();
+});

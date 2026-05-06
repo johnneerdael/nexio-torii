@@ -58,10 +58,10 @@ test("buildDebridStreams emits cached and uncached streams for multiple services
     const streams = buildDebridStreams(input);
 
     assert.equal(streams.length, 2);
-    assert.equal(streams[0].name, "NEXIO TORII [⚡ RD]\n🎥 1080p");
+    assert.equal(streams[0].name, "TORII [⚡ RD]\n🎥 1080p");
     assert.equal(streams[0].url, "https://nexio-torii.example/resolve/" + input.nexioPayload + "/0/ABCDEF/1?title=Example%20Show%20-%2001%20%5B1080p%5D.mkv");
     assert.equal(streams[0].subtitles.length, 1);
-    assert.equal(streams[1].name, "NEXIO TORII [☁️ PM]\n🎥 1080p");
+    assert.equal(streams[1].name, "TORII [☁️ PM]\n🎥 1080p");
     assert.equal(streams[1]._isCached, false);
 });
 
@@ -81,7 +81,7 @@ test("buildDebridStreams honors hideUncached", () => {
     const streams = buildDebridStreams(input);
 
     assert.equal(streams.length, 1);
-    assert.equal(streams[0].name, "NEXIO TORII [⚡ RD]\n🎥 1080p");
+    assert.equal(streams[0].name, "TORII [⚡ RD]\n🎥 1080p");
 });
 
 test("buildDebridStreams skips Offcloud series cache without files", () => {

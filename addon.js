@@ -641,7 +641,7 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
             return {
                 streams: [
                     {
-                        name: "NEXIO TORII [INFO]\nCache warming",
+                        name: "TORII [INFO]\nCache warming",
                         description: "First scrape is already running. Try this episode again in a few seconds.",
                         url: BASE_URL + "/waiting.mp4"
                     }
@@ -737,7 +737,7 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
             // Attaches active trackers enabling direct torrent streaming via Stremio.
             //===============
             if (userConfig.enableP2P) {
-                const p2pName = `NEXIO TORII [📡 P2P]\n🎥 ${res}`;
+                const p2pName = `TORII [📡 P2P]\n🎥 ${res}`;
                 const p2pDesc = `${flag} Nyaa | 📡 P2P${batchStr}\n📄 ${t.title}\n💾 ${t.size} | 👥 ${seeders} Seeds`;
                 
                 streams.push({

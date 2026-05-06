@@ -57,6 +57,16 @@ test("catalog database creates resolution cache and drop tables", () => {
     closeCatalogDatabaseForTests();
 });
 
+test("catalog database creates backfill state table", () => {
+    const db = getCatalogDatabase({ dbPath: ":memory:" });
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all().map(row => row.name);
+
+    assert.ok(tables.includes("catalog_backfill_state"));
+
+    db.close();
+    closeCatalogDatabaseForTests();
+});
+
 test("identity resolution cache stores query and candidate diagnostics", () => {
     const db = getCatalogDatabase({ dbPath: ":memory:" });
     const columns = db.prepare("PRAGMA table_info(identity_resolution_cache)").all().map(column => column.name);

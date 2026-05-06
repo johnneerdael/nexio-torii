@@ -7,6 +7,7 @@ const { addonInterface } = require("./addon");
 const { parseConfig } = require("./lib/config");
 const { selectBestVideoFile } = require("./lib/parser");
 const { resolveStorePlayback, resolveStoreSubtitle } = require("./lib/playback");
+const { applyHttpCacheHeaders } = require("./lib/cache/http-cache");
 
 const app = express();
 app.use(express.json()); 
@@ -28,6 +29,8 @@ app.use((req, res, next) => {
     }
     next();
 });
+
+app.use(applyHttpCacheHeaders);
 
 //===============
 // GLOBAL ERROR HANDLER

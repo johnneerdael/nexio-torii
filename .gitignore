@@ -4,3 +4,9 @@ data/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+
+# Local torrent catalog artifacts
+data/catalog.sqlite
+data/catalog.sqlite-*
+data/catalog-exports/
+data/anime/nexio-anime-map-v1.json

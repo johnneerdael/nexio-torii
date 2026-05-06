@@ -1,0 +1,32 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+
+const { getCatalogDatabase, closeCatalogDatabaseForTests } = require("../lib/catalog/database");
+
+function tempDbPath() {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nexio-catalog-"));
+    return path.join(dir, "catalog.sqlite");
+}
+
+test("catalog database creates source, identity, episode, and checkpoint tables", () => {
+    const db = getCatalogDatabase({ dbPath: tempDbPath() });
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all().map(row => row.name);
+
+    assert.ok(tables.includes("source_items"));
+    assert.ok(tables.includes("torrent_identities"));
+    assert.ok(tables.includes("torrent_episode_matches"));
+    assert.ok(tables.includes("ingestion_checkpoints"));
+    assert.ok(tables.includes("ingestion_runs"));
+
+    closeCatalogDatabaseForTests();
+});
+
+test("catalog database uses a separate path from runtime cache by default", () => {
+    delete process.env.CATALOG_DB_PATH;
+    const resolved = require("../lib/catalog/database").resolveCatalogDbPath();
+
+    assert.equal(resolved.endsWith(path.join("data", "catalog.sqlite")), true);
+});

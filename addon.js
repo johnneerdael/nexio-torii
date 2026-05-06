@@ -15,6 +15,7 @@ const { extractEpisodeNumber, getBatchRange, isEpisodeMatch, selectBestVideoFile
 const { getTorrentsForStream } = require("./lib/cache/stream-cache");
 const { buildMediaKey } = require("./lib/cache/torrent-cache");
 const { checkStoreTorzWithCache } = require("./lib/cache/debrid-cache");
+const { filterByCanonical } = require("./lib/normalizer/match");
 
 let BASE_URL = process.env.BASE_URL || "http://127.0.0.1:7002";
 BASE_URL = BASE_URL.replace(/\/+$/, "");
@@ -651,6 +652,48 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
         }
         
         //===============
+        // CANONICAL-GATE FILTER (multi-axis hard gates ported from nexio-nagare).
+        // Applies BEFORE the existing resolution/title-substring filters to drop
+        // wrong-show / wrong-year / recap-movie / catastrophic-drift candidates
+        // that the legacy substring-based verifyTitleMatch wouldn't catch.
+        //
+        // Gates (any failure → drop):
+        //   - format mismatch:   TV canonical vs MOVIE/RECAP torrent
+        //   - year mismatch:     diff ≥ 5 (catches FMA 2003 vs Brotherhood 2009)
+        //   - title distance:    normalised Levenshtein > 0.4
+        //   - recap_tag:         RECAP hint when canonical is TV
+        //   - short_release:     Movie/Recap/Special hint when TV canonical has ≥5 episodes
+        //
+        // Skipped on raw searches (user explicitly bypassed metadata) and when
+        // freshMeta is unavailable (no canonical to gate against).
+        //===============
+        let canonGateDropCount = 0;
+        if (!isRawSearch && freshMeta && torrents.length > 0) {
+            const canonical = {
+                format: freshMeta.format || (isMovie ? "MOVIE" : null),
+                year: Number.isFinite(freshMeta.year) ? freshMeta.year : null,
+                episodeCount: Number.isFinite(freshMeta.episodes) ? freshMeta.episodes : null,
+                mainTitle: freshMeta.name || null,
+                englishTitle: freshMeta.englishName || null,
+                altName: freshMeta.altName || null,
+                synonyms: Array.isArray(freshMeta.synonyms) ? freshMeta.synonyms : []
+            };
+            const { kept, dropped } = await filterByCanonical({
+                canonical,
+                torrents,
+                opts: { preferDub: false, requestedEpisode: requestedEp, expectedSeason }
+            });
+            canonGateDropCount = dropped.length;
+            if (process.env.DEBUG_MATCH === "1" && dropped.length > 0) {
+                for (const d of dropped.slice(0, 8)) {
+                    console.log(`[canon-gate] drop "${d.torrent.title}" → ${d.gateFailures.join(" | ")}`);
+                }
+            }
+            torrents = kept;
+            if (!torrents.length) return { "streams": [], "cacheMaxAge": 60 };
+        }
+
+        //===============
         // EXPLICIT RESOLUTION & CLEANUP FILTER
         // Discards OSTs, manga, irrelevant filetypes, and non-matching resolutions.
         // Also drops oversized batches that likely represent multi-season bundles.
@@ -778,7 +821,7 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
         });
         streams.push(...debridStreams);
 
-        console.log(`[NEXIO TORII FORENSICS] Episoden-Filter hat ${epDropCount} nicht-passende Einträge gelöscht.`);
+        console.log(`[NEXIO TORII FORENSICS] Canon-Gate ${canonGateDropCount}, Resolution-Filter ${filterDropCount}, Episoden-Filter ${epDropCount} nicht-passende Einträge gelöscht.`);
         console.log(`[NEXIO TORII FORENSICS] Finale Streams an Stremio gesendet: ${streams.length}\n`);
 
         //===============

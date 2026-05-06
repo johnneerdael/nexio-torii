@@ -16,6 +16,8 @@ services:
       - "PORT=7002"
       - "NODE_ENV=production"
       - "STREMTHRU_URL=https://stremthrufortheweak.nhyira.dev/"
+    volumes:
+      - "nexio-torii-cache:/app/data"
     logging:
       driver: "json-file"
       options:
@@ -28,3 +30,7 @@ networks:
   stremio-network:
     name: "stremio-internal-net"
     driver: "bridge"
+
+volumes:
+  nexio-torii-cache:
+    name: "nexio-torii-cache"

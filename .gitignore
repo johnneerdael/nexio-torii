@@ -1,1 +1,6 @@
 node_modules/
+stremio-addons-description.md
+data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal

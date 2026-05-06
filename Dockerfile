@@ -11,6 +11,8 @@ LABEL org.opencontainers.image.title="Nexio Torii" \
 
 WORKDIR /app
 
+RUN apk add --no-cache python3 make g++
+
 COPY package*.json ./
 RUN npm ci --omit=dev
 

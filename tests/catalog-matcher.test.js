@@ -36,3 +36,15 @@ test("matchSourceItem returns null when no stable evidence exists", () => {
 
     assert.equal(match, null);
 });
+
+test("matchSourceItem does not map Nyaa by hash when AnimeTosho has a matching hash", () => {
+    const animeMap = loadAnimeMap(fixturePath);
+    const nyaaMatch = matchSourceItem({
+        source: "nyaa",
+        infoHash: "abcdef0123456789abcdef0123456789abcdef02",
+        title: "[SubsPlease] Example Anime - 01 [1080p]",
+        raw: {}
+    }, animeMap);
+
+    assert.equal(nyaaMatch, null);
+});

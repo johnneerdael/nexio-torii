@@ -12,12 +12,14 @@
     "anime-map:refresh": "node scripts/anime-map-refresh.js"
   },
   "dependencies": {
+    "@viren070/parse-torrent-title": "^0.7.6",
     "axios": "^1.6.0",
     "better-sqlite3": "^11.10.0",
     "cheerio": "^1.0.0",
     "dotenv": "^16.4.0",
     "express": "^4.18.2",
     "fast-xml-parser": "^4.3.0",
+    "fuzzball": "^2.2.6",
     "stremio-addon-sdk": "latest"
   }
 }

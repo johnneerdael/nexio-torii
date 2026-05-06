@@ -45,6 +45,27 @@ test("AnimeTosho TSV export parser imports stored torrent rows", () => {
     assert.equal(rows[0].torrentUrl, "https://storage.animetosho.org/torrent/abcdef0123456789abcdef0123456789abcdef03/torrent.torrent");
 });
 
+test("AnimeTosho fetchTorrentsTsv downloads and parses TSV export", async () => {
+    const calls = [];
+    const rows = await animetosho.fetchTorrentsTsv({
+        url: "https://example.test/torrents.tsv",
+        http: {
+            get: async (url, options) => {
+                calls.push({ url, options });
+                return {
+                    data: "id\tname\tbtih\tstored_torrent\tdate_posted\n1\tExample Anime - 01\tabcdef0123456789abcdef0123456789abcdef01\t1\t1700000000\n"
+                };
+            }
+        },
+        timeoutMs: 1234
+    });
+
+    assert.equal(calls[0].url, "https://example.test/torrents.tsv");
+    assert.equal(calls[0].options.timeout, 1234);
+    assert.equal(rows[0].source, "animetosho");
+    assert.equal(rows[0].sourceItemId, "1");
+});
+
 test("TokyoTosho RSS parser extracts description magnet hash", () => {
     const rows = tokyotosho.parseRss(fixture("tokyotosho-rss.xml"));
     assert.equal(rows.length, 1);

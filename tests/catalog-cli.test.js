@@ -17,6 +17,7 @@ test("catalog validate prints source counts for a sqlite database", () => {
     assert.match(result.stdout, /torrent_identities=0/);
     assert.match(result.stdout, /dropped_source_items=0/);
     assert.match(result.stdout, /identity_resolution_cache=0/);
+    assert.match(result.stdout, /candidate_diagnostics=0/);
 });
 
 test("anime map refresh cli writes a validated map from local source files", () => {

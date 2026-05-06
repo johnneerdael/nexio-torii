@@ -24,7 +24,8 @@ function main() {
     const episodes = count(db, "SELECT COUNT(*) AS count FROM torrent_episode_matches");
     const dropped = count(db, "SELECT COUNT(*) AS count FROM dropped_source_items");
     const resolutionCache = count(db, "SELECT COUNT(*) AS count FROM identity_resolution_cache");
-    console.log(`[CATALOG_VALIDATE] source_items=${sourceItems} torrent_identities=${identities} episode_matches=${episodes} dropped_source_items=${dropped} identity_resolution_cache=${resolutionCache}`);
+    const candidateDiagnostics = count(db, "SELECT COUNT(*) AS count FROM identity_resolution_cache WHERE candidate_json != '{}'");
+    console.log(`[CATALOG_VALIDATE] source_items=${sourceItems} torrent_identities=${identities} episode_matches=${episodes} dropped_source_items=${dropped} identity_resolution_cache=${resolutionCache} candidate_diagnostics=${candidateDiagnostics}`);
 
     let missingSource = false;
     for (const source of ["nyaa", "animetosho", "tokyotosho"]) {

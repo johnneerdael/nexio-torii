@@ -1,11 +1,20 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const os = require("node:os");
+const path = require("node:path");
+const fs = require("node:fs");
 
 const {
     CacheDecision,
     CacheState,
     createCacheStateManager
 } = require("../lib/cache/cache-state");
+const { getDatabase, closeDatabaseForTests } = require("../lib/cache/database");
+
+function tempDb() {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nexio-cache-state-"));
+    return getDatabase({ dbPath: path.join(dir, "cache.sqlite") });
+}
 
 test("fresh cached torrents use cache only", () => {
     const manager = createCacheStateManager({ now: () => 10_000 });
@@ -68,4 +77,37 @@ test("expired lock can be acquired again", () => {
 
     const result = manager.decide({ mediaKey: "media", torrentCount: 0, newestUpdatedAt: 0, freshTtlMs: 1, staleTtlMs: 60_000 });
     assert.equal(result.decision, CacheDecision.SCRAPE_FOREGROUND);
+});
+
+test("sqlite locks are shared across manager instances", () => {
+    const database = tempDb();
+    const first = createCacheStateManager({ db: database, now: () => 1000, lockTtlMs: 10_000 });
+    const second = createCacheStateManager({ db: database, now: () => 1000, lockTtlMs: 10_000 });
+
+    const firstResult = first.decide({ mediaKey: "media", torrentCount: 0, newestUpdatedAt: 0, freshTtlMs: 1, staleTtlMs: 60_000 });
+    const secondResult = second.decide({ mediaKey: "media", torrentCount: 0, newestUpdatedAt: 0, freshTtlMs: 1, staleTtlMs: 60_000 });
+
+    assert.equal(firstResult.decision, CacheDecision.SCRAPE_FOREGROUND);
+    assert.equal(secondResult.decision, CacheDecision.WAIT_FOR_OTHER);
+
+    first.releaseLock("media");
+    const thirdResult = second.decide({ mediaKey: "media", torrentCount: 0, newestUpdatedAt: 0, freshTtlMs: 1, staleTtlMs: 60_000 });
+    assert.equal(thirdResult.decision, CacheDecision.SCRAPE_FOREGROUND);
+
+    closeDatabaseForTests();
+});
+
+test("sqlite locks expire across manager instances", () => {
+    const database = tempDb();
+    let currentTime = 1000;
+    const first = createCacheStateManager({ db: database, now: () => currentTime, lockTtlMs: 10_000 });
+    const second = createCacheStateManager({ db: database, now: () => currentTime, lockTtlMs: 10_000 });
+
+    first.decide({ mediaKey: "media", torrentCount: 0, newestUpdatedAt: 0, freshTtlMs: 1, staleTtlMs: 60_000 });
+    currentTime = 12_000;
+    const result = second.decide({ mediaKey: "media", torrentCount: 0, newestUpdatedAt: 0, freshTtlMs: 1, staleTtlMs: 60_000 });
+
+    assert.equal(result.decision, CacheDecision.SCRAPE_FOREGROUND);
+
+    closeDatabaseForTests();
 });

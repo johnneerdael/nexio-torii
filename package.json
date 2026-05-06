@@ -8,7 +8,8 @@
     "test": "node --test tests/*.test.js",
     "catalog:ingest": "node scripts/catalog-ingest.js",
     "catalog:validate": "node scripts/catalog-validate.js",
-    "catalog:daily": "node scripts/catalog-ingest.js --mode daily --source all"
+    "catalog:daily": "node scripts/catalog-daily-runner.js --source all --mode daily --live",
+    "anime-map:refresh": "node scripts/anime-map-refresh.js"
   },
   "dependencies": {
     "axios": "^1.6.0",

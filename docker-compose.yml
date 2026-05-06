@@ -29,16 +29,16 @@ services:
   nexio-torii-ingest:
     image: "ghcr.io/johnneerdael/nexio-torii:latest"
     container_name: "nexio_torii_ingest"
-    profiles:
-      - "ingest"
-    restart: "no"
+    restart: "unless-stopped"
     environment:
       - "NODE_ENV=production"
       - "CATALOG_DB_PATH=/app/data/catalog.sqlite"
       - "ANIME_MAP_PATH=/app/data/anime/nexio-anime-map-v1.json"
+      - "ANIME_MAP_PROVENANCE_PATH=/app/data/anime/nexio-anime-map-provenance.json"
+      - "CATALOG_DAILY_INTERVAL_MS=86400000"
     volumes:
       - "nexio-torii-cache:/app/data"
-    command: ["npm", "run", "catalog:ingest", "--", "--source", "all", "--mode", "daily", "--limit", "25", "--live"]
+    command: ["npm", "run", "catalog:daily", "--", "--limit", "25"]
     logging:
       driver: "json-file"
       options:

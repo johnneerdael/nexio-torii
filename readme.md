@@ -114,10 +114,16 @@ Run live source parser validation:
 LIVE_CATALOG_TESTS=1 node --test tests/catalog-live.test.js
 ```
 
+Refresh the local anime ID map from the same upstream feeds used by Nexio's Android generator:
+
+```bash
+npm run anime-map:refresh -- --map data/anime/nexio-anime-map-v1.json
+```
+
 Run a small live ingestion sample:
 
 ```bash
-ANIME_MAP_PATH=/Users/jneerdael/Scripts/nexio/app/src/main/assets/anime/nexio-anime-map-v1.json \
+ANIME_MAP_PATH=data/anime/nexio-anime-map-v1.json \
 npm run catalog:ingest -- --source all --mode daily --limit 10 --live --db data/catalog.sqlite
 ```
 
@@ -127,26 +133,22 @@ Inspect the local SQLite catalog:
 npm run catalog:validate -- --db data/catalog.sqlite --require-source nyaa --require-source animetosho --require-source tokyotosho
 ```
 
-Docker ingestion uses the same `/app/data` volume as the addon, but it does not change runtime stream behavior.
-
-Copy the anime map into the named Docker data volume before first run if you want identity matches during Docker ingestion:
+Docker ingestion uses the same `/app/data` volume as the addon, but it does not change runtime stream behavior. The `nexio-torii-ingest` sidecar now starts by default, refreshes `/app/data/anime/nexio-anime-map-v1.json` on startup, runs ingestion, then repeats once per day.
 
 ```bash
-docker compose run --rm \
-  -v /Users/jneerdael/Scripts/nexio/app/src/main/assets/anime/nexio-anime-map-v1.json:/tmp/nexio-anime-map-v1.json:ro \
-  nexio-torii-ingest \
-  sh -lc 'mkdir -p /app/data/anime && cp /tmp/nexio-anime-map-v1.json /app/data/anime/nexio-anime-map-v1.json'
+docker compose up -d nexio-torii nexio-torii-ingest
 ```
 
-Run the one-shot ingestion container:
+Run a one-shot startup-style cycle locally:
 
 ```bash
-docker compose --profile ingest up nexio-torii-ingest
+docker compose run --rm nexio-torii-ingest npm run catalog:daily -- --once --limit 10
 ```
 
-Validate all three sources from logs:
+Validate anime map refresh and all three source ingestions from logs:
 
 ```bash
+docker compose logs nexio-torii-ingest | rg 'anime_map refreshed=true .*identity_records=[1-9]'
 docker compose logs nexio-torii-ingest | rg 'source=nyaa .*upserted=[1-9]'
 docker compose logs nexio-torii-ingest | rg 'source=animetosho .*upserted=[1-9]'
 docker compose logs nexio-torii-ingest | rg 'source=tokyotosho .*upserted=[1-9]'
@@ -172,6 +174,12 @@ Publishing requires the repository workflow token to have `packages: write`, whi
 `BASE_URL`: Required in production. Public URL of your deployment, without a trailing slash.
 
 `STREMTHRU_URL`: Optional. StremThru instance used for premium unlocker calls. Defaults to `https://stremthrufortheweak.nhyira.dev/`.
+
+`ANIME_MAP_PATH`: Optional. Local anime ID map path for catalog matching. Defaults to `data/anime/nexio-anime-map-v1.json`.
+
+`ANIME_MAP_PROVENANCE_PATH`: Optional. Provenance path written by map refresh. Defaults next to `ANIME_MAP_PATH`.
+
+`CATALOG_DAILY_INTERVAL_MS`: Optional. Interval for the Docker ingestion sidecar. Defaults to `86400000`.
 
 `PORT`: Optional. Defaults to `7002`.
 

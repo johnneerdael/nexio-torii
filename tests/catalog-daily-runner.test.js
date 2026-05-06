@@ -91,28 +91,55 @@ test("runStartupBackfillIfNeeded runs and marks complete", async () => {
     assert.deepEqual(events[2][1].summary, { nyaa: { scanned: 2 } });
 });
 
-test("runStartupBackfillIfNeeded marks failed and rethrows", async () => {
+test("runStartupBackfillIfNeeded marks failed and continues", async () => {
     const events = [];
     const { runStartupBackfillIfNeeded } = require("../lib/catalog/daily-runner");
 
-    await assert.rejects(
-        runStartupBackfillIfNeeded({
-            isBackfillComplete: () => false,
-            ingestBackfill: async () => {
-                throw new Error("backfill failed");
-            },
-            markBackfillComplete: payload => events.push(["complete", payload]),
-            markBackfillFailed: payload => events.push(["failed", payload]),
-            now: (() => {
-                const values = [1000, 2000];
-                return () => values.shift();
-            })(),
-            log: message => events.push(message)
-        }),
-        /backfill failed/
-    );
+    const result = await runStartupBackfillIfNeeded({
+        isBackfillComplete: () => false,
+        ingestBackfill: async () => {
+            throw new Error("backfill failed");
+        },
+        markBackfillComplete: payload => events.push(["complete", payload]),
+        markBackfillFailed: payload => events.push(["failed", payload]),
+        now: (() => {
+            const values = [1000, 2000];
+            return () => values.shift();
+        })(),
+        log: message => events.push(message)
+    });
 
+    assert.equal(result.failed, true);
     assert.equal(events[0], "[CATALOG_RUNNER] startup_backfill starting=true");
     assert.equal(events[1][0], "failed");
     assert.equal(events[1][1].error, "backfill failed");
+});
+
+test("runStartupBackfillIfNeeded marks incomplete summaries as failed without throwing", async () => {
+    const events = [];
+    const { runStartupBackfillIfNeeded } = require("../lib/catalog/daily-runner");
+
+    const result = await runStartupBackfillIfNeeded({
+        isBackfillComplete: () => false,
+        ingestBackfill: async () => ({
+            complete: false,
+            error: "startup backfill incomplete",
+            summary: {
+                nyaa: { status: "failed", error: "403" },
+                animetosho: { status: "complete" }
+            }
+        }),
+        markBackfillComplete: payload => events.push(["complete", payload]),
+        markBackfillFailed: payload => events.push(["failed", payload]),
+        now: (() => {
+            const values = [1000, 2000];
+            return () => values.shift();
+        })(),
+        log: message => events.push(message)
+    });
+
+    assert.equal(result.complete, false);
+    assert.equal(events[1][0], "failed");
+    assert.equal(events[1][1].error, "startup backfill incomplete");
+    assert.deepEqual(events[1][1].summary.nyaa, { status: "failed", error: "403" });
 });

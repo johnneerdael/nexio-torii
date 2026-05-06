@@ -46,9 +46,28 @@ async function ingestCatalog(args) {
     return [];
 }
 
-async function ingestBackfill(args) {
-    await runChild(["scripts/catalog-ingest.js", "--source", "all", "--mode", "backfill", "--live", ...args]);
-    return { mode: "backfill" };
+async function ingestBackfill(args, options = {}) {
+    const run = options.runChild || runChild;
+    const log = options.log || console.log;
+    const sources = options.sources || ["nyaa", "animetosho", "tokyotosho"];
+    const summary = {};
+
+    for (const source of sources) {
+        try {
+            await run(["scripts/catalog-ingest.js", "--source", source, "--mode", "backfill", "--live", ...args]);
+            summary[source] = { status: "complete" };
+        } catch (error) {
+            summary[source] = { status: "failed", error: error.message };
+            log(`[CATALOG_RUNNER] startup_backfill source=${source} failed error=${JSON.stringify(error.message)}`);
+        }
+    }
+
+    const failed = Object.values(summary).filter(result => result.status === "failed");
+    return {
+        complete: failed.length === 0,
+        error: failed.length > 0 ? "startup backfill incomplete" : undefined,
+        summary
+    };
 }
 
 async function main() {
@@ -74,7 +93,14 @@ async function main() {
     });
 }
 
-main().catch(error => {
-    console.error(`[CATALOG_RUNNER] failed error=${JSON.stringify(error.message)}`);
-    process.exit(1);
-});
+if (require.main === module) {
+    main().catch(error => {
+        console.error(`[CATALOG_RUNNER] failed error=${JSON.stringify(error.message)}`);
+        process.exit(1);
+    });
+}
+
+module.exports = {
+    ingestBackfill,
+    parseArgs
+};

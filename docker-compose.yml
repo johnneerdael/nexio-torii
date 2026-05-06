@@ -46,7 +46,7 @@ services:
       - "nexio-torii-cache:/app/data"
     command:
       [
-        "npm", "run", "catalog:daily", "--",
+        "node", "scripts/catalog-daily-runner.js",
         "--source", "all",
         "--mode", "daily",
         "--live",

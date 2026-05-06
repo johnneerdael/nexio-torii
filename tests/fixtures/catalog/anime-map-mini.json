@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "mappingPolicyVersion": 1,
+  "identityRecordsByKitsu": {
+    "265": {
+      "kitsu": "265",
+      "mal": "290",
+      "anilist": "290",
+      "anidb": "1",
+      "tmdb": "26209",
+      "tvdb": "72025",
+      "imdb": "tt0286390",
+      "mediaType": "series",
+      "sourceType": "TV"
+    }
+  },
+  "episodeMappingsByAnidb": {},
+  "indexes": {
+    "byKitsu": { "265": "265" },
+    "byMal": { "290": "265" },
+    "byAnilist": { "290": "265" },
+    "byAnidb": { "1": "265" },
+    "byTvdb": { "72025": ["265"] },
+    "byTmdbTv": { "26209": ["265"] },
+    "byTmdbMovie": {},
+    "byImdb": { "tt0286390": ["265"] }
+  }
+}

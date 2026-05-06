@@ -86,3 +86,46 @@ test("applyHttpCacheHeaders patches json to emit etag and 304", () => {
     assert.equal(headers.ETag, etag);
     assert.equal(headers["Cache-Control"].includes("stale-while-revalidate"), true);
 });
+
+test("applyHttpCacheHeaders patches send for sdk router responses", () => {
+    const headers = {};
+    let statusCode = 200;
+    let ended = false;
+    let sentBody = null;
+    const body = JSON.stringify({ streams: [] });
+    const etag = generateEtag(body);
+    const req = {
+        method: "GET",
+        path: "/%7B%22NexioTorii%22%3A%22abc%22%7D/stream/anime/anilist:20-1.json",
+        headers: { "if-none-match": etag }
+    };
+    const res = {
+        setHeader: (name, value) => { headers[name] = value; },
+        getHeader: name => headers[name],
+        status: code => {
+            statusCode = code;
+            return res;
+        },
+        end: () => {
+            ended = true;
+            return res;
+        },
+        send: value => {
+            sentBody = value;
+            return res;
+        },
+        json: value => {
+            sentBody = value;
+            return res;
+        }
+    };
+
+    applyHttpCacheHeaders(req, res, () => {});
+    res.send(body);
+
+    assert.equal(statusCode, 304);
+    assert.equal(ended, true);
+    assert.equal(sentBody, null);
+    assert.equal(headers.ETag, etag);
+    assert.equal(headers["Cache-Control"].includes("stale-while-revalidate"), true);
+});

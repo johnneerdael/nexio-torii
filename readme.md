@@ -67,7 +67,31 @@ services:
       - PORT=7002
       - BASE_URL=https://your-domain.example
       - STREMTHRU_URL=https://stremthrufortheweak.nhyira.dev/
+    volumes:
+      - nexio-torii-cache:/app/data
+
+volumes:
+  nexio-torii-cache:
 ```
+
+## Cache Behavior
+
+Nexio Torii uses a SQLite cache at `data/nexio-cache.sqlite` by default. The cache is designed to make stream requests return from local data whenever possible, then refresh tracker results in the background when cached data becomes stale.
+
+Environment variables:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `CACHE_DB_PATH` | `data/nexio-cache.sqlite` | SQLite database path |
+| `TORRENT_CACHE_FRESH_MS` | `21600000` | Time torrent results are considered fresh |
+| `TORRENT_CACHE_STALE_MS` | `604800000` | Time stale torrent results can still be returned while refreshing |
+| `DEBRID_CACHE_TTL_MS` | `86400000` | Time StremThru availability is cached per service/hash/episode |
+| `STREAM_HTTP_MAX_AGE_SECONDS` | `1800` | Browser stream response cache TTL |
+| `STREAM_HTTP_S_MAXAGE_SECONDS` | `3600` | CDN stream response cache TTL |
+| `STREAM_HTTP_STALE_REVALIDATE_SECONDS` | `21600` | CDN stale-while-revalidate window |
+| `STREAM_HTTP_STALE_ERROR_SECONDS` | `300` | CDN stale-if-error window |
+
+The current source set remains Nyaa, AnimeTosho, and TokyoTosho. SubsPlease, TokyoTosho account-specific behavior, and Beatrice-Raws are intentionally deferred until the cache layer is stable.
 
 ## GHCR Publishing
 

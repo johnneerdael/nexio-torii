@@ -36,6 +36,8 @@ services:
       - "ANIME_MAP_PATH=/app/data/anime/nexio-anime-map-v1.json"
       - "ANIME_MAP_PROVENANCE_PATH=/app/data/anime/nexio-anime-map-provenance.json"
       - "CATALOG_DAILY_INTERVAL_MS=86400000"
+      - "TMDB_API_KEY=${TMDB_API_KEY:-}"
+      - "TMDB_API_URL=${TMDB_API_URL:-https://api.themoviedb.org/3}"
     volumes:
       - "nexio-torii-cache:/app/data"
     command: ["npm", "run", "catalog:daily", "--", "--limit", "25"]

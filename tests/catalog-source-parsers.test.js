@@ -53,6 +53,21 @@ test("TokyoTosho RSS parser extracts description magnet hash", () => {
     assert.equal(rows[0].sizeText, "1.3GB");
 });
 
+test("TokyoTosho RSS parser converts CDATA link objects to strings", () => {
+    const rows = tokyotosho.parseRss(`
+        <rss><channel><item>
+          <title>Example</title>
+          <link><![CDATA[https://nyaa.si/view/2106734/torrent]]></link>
+          <guid><![CDATA[https://www.tokyotosho.info/details.php?id=2079221]]></guid>
+          <description><![CDATA[<a href="magnet:?xt=urn:btih:PRJMQNRZLT2WAYIWEOX6LAUVSST5AADW">Magnet Link</a><br />Size: 735.56MB<br />]]></description>
+        </item></channel></rss>
+    `);
+
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].sourceItemId, "2079221");
+    assert.equal(rows[0].torrentUrl, "https://nyaa.si/view/2106734/torrent");
+});
+
 test("TokyoTosho listing parser returns stats and details id", () => {
     const rows = tokyotosho.parseListing(fixture("tokyotosho-listing.html"));
     assert.equal(rows.length, 1);

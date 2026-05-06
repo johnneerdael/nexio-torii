@@ -98,6 +98,64 @@ Stream and manifest responses include CDN-friendly `Cache-Control` headers and E
 
 The current source set remains Nyaa, AnimeTosho, and TokyoTosho. SubsPlease, TokyoTosho account-specific behavior, and Beatrice-Raws are intentionally deferred until the cache layer is stable.
 
+## Local Torrent Catalog Phase 1
+
+The catalog builder is a standalone ingestion path. It populates `catalog.sqlite` from Nyaa, AnimeTosho, and TokyoTosho, but it does not change the Stremio addon runtime yet.
+
+Initialize an empty catalog:
+
+```bash
+npm run catalog:ingest -- --source none --db data/catalog.sqlite
+```
+
+Run live source parser validation:
+
+```bash
+LIVE_CATALOG_TESTS=1 node --test tests/catalog-live.test.js
+```
+
+Run a small live ingestion sample:
+
+```bash
+ANIME_MAP_PATH=/Users/jneerdael/Scripts/nexio/app/src/main/assets/anime/nexio-anime-map-v1.json \
+npm run catalog:ingest -- --source all --mode daily --limit 10 --live --db data/catalog.sqlite
+```
+
+Inspect the local SQLite catalog:
+
+```bash
+npm run catalog:validate -- --db data/catalog.sqlite --require-source nyaa --require-source animetosho --require-source tokyotosho
+```
+
+Docker ingestion uses the same `/app/data` volume as the addon, but it does not change runtime stream behavior.
+
+Copy or mount the anime map into the data volume before first run:
+
+```bash
+mkdir -p data/anime
+cp /Users/jneerdael/Scripts/nexio/app/src/main/assets/anime/nexio-anime-map-v1.json data/anime/nexio-anime-map-v1.json
+```
+
+Run the one-shot ingestion container:
+
+```bash
+docker compose --profile ingest up nexio-torii-ingest
+```
+
+Validate all three sources from logs:
+
+```bash
+docker compose logs nexio-torii-ingest | rg 'source=nyaa .*upserted=[1-9]'
+docker compose logs nexio-torii-ingest | rg 'source=animetosho .*upserted=[1-9]'
+docker compose logs nexio-torii-ingest | rg 'source=tokyotosho .*upserted=[1-9]'
+```
+
+Validate the SQLite catalog from Docker:
+
+```bash
+docker compose run --rm nexio-torii-ingest npm run catalog:validate -- --db /app/data/catalog.sqlite --require-source nyaa --require-source animetosho --require-source tokyotosho
+```
+
 ## GHCR Publishing
 
 The GitHub Actions workflow in `.github/workflows/deploy.yml` builds and pushes:

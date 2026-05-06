@@ -26,6 +26,27 @@ services:
     networks:
       - "stremio-network"
 
+  nexio-torii-ingest:
+    image: "ghcr.io/johnneerdael/nexio-torii:latest"
+    container_name: "nexio_torii_ingest"
+    profiles:
+      - "ingest"
+    restart: "no"
+    environment:
+      - "NODE_ENV=production"
+      - "CATALOG_DB_PATH=/app/data/catalog.sqlite"
+      - "ANIME_MAP_PATH=/app/data/anime/nexio-anime-map-v1.json"
+    volumes:
+      - "nexio-torii-cache:/app/data"
+    command: ["npm", "run", "catalog:ingest", "--", "--source", "all", "--mode", "daily", "--limit", "25", "--live"]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - "stremio-network"
+
 networks:
   stremio-network:
     name: "stremio-internal-net"

@@ -164,6 +164,10 @@ function sanitizeSearchQuery(title) {
 const manifest = {
     "id": "org.community.nexiotorii", "version": "9.6.1", "name": "Nexio Torii", "logo": BASE_URL + "/favicon.png",
     "description": "Anime streams from Nyaa through StremThru-backed premium unlockers and optional P2P.",
+    "stremioAddonsConfig": {
+        "issuer": "https://stremio-addons.net",
+        "signature": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..V414tKUupDmAK_As1LDd7A.1CKaSXDyaR_i0nVYBh-EYL9J_nuHCwiPCKoR_ALYEN7nqd0SLP3HLkuSKVqsBNYBqjzqfGYpRpAmlCntou1u6G2u1tPD3jVv6EMmGFqEG-HZVbdvjsP-OGt57e8Ar8Qm.X3iPFlRXb8scSMprT-fFrg"
+    },
     "types": ["anime", "movie", "series"],
     "resources": [
         "catalog",

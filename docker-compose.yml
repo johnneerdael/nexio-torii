@@ -1,7 +1,18 @@
 #===============
 # DOCKER COMPOSE
-# Ensures internal networking is cleanly separated and logs are properly 
+# Ensures internal networking is cleanly separated and logs are properly
 # rotated (max 10mb) to avoid disk exhaustion on smaller VPS machines.
+#
+# To deploy behind a public domain — set BASE_URL via a .env file next to
+# this compose.yml or via your shell environment, e.g.:
+#
+#   echo 'BASE_URL=https://torii.example.com' >> .env
+#   echo 'PORT=7002' >> .env
+#   docker compose up -d
+#
+# BASE_URL is what the addon emits in its Stremio manifest (`logo`,
+# `bingeGroup`, install URLs, /resolve and /sub redirects). If unset it
+# falls back to http://127.0.0.1:7002, which only works for local installs.
 #===============
 name: "nexio-torii"
 
@@ -11,11 +22,12 @@ services:
     container_name: "nexio_torii"
     restart: "unless-stopped"
     ports:
-      - "7002:7002"
+      - "${PORT:-7002}:${PORT:-7002}"
     environment:
-      - "PORT=7002"
+      - "PORT=${PORT:-7002}"
+      - "BASE_URL=${BASE_URL:-http://127.0.0.1:7002}"
       - "NODE_ENV=production"
-      - "STREMTHRU_URL=https://stremthrufortheweak.nhyira.dev/"
+      - "STREMTHRU_URL=${STREMTHRU_URL:-https://stremthrufortheweak.nhyira.dev/}"
     volumes:
       - "nexio-torii-cache:/app/data"
     logging:

@@ -10,9 +10,11 @@ const axios = require("axios");
 const { searchAnime, getAnimeMeta, getTrendingAnime, getTopAnime, getAiringAnime, getSeasonalAnime, getJikanMeta, fetchEpisodeDetails, getCurrentSeasonInfo } = require("./lib/anilist");
 const { searchNyaaForAnime } = require("./lib/nyaa");
 const { encodeConfigPayload, fromBase64Safe, parseConfig, toBase64Safe } = require("./lib/config");
-const { checkStoreTorz } = require("./lib/debrid");
 const { buildDebridStreams } = require("./lib/stream-builder");
 const { extractEpisodeNumber, getBatchRange, isEpisodeMatch, selectBestVideoFile, isSeasonBatch, verifyTitleMatch } = require("./lib/parser");
+const { getTorrentsForStream } = require("./lib/cache/stream-cache");
+const { buildMediaKey } = require("./lib/cache/torrent-cache");
+const { checkStoreTorzWithCache } = require("./lib/cache/debrid-cache");
 
 let BASE_URL = process.env.BASE_URL || "http://127.0.0.1:7002";
 BASE_URL = BASE_URL.replace(/\/+$/, "");
@@ -620,8 +622,33 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
             return { torrentsArr: Array.from(deduplicated.values()) };
         };
 
-        const searchResult = await fetchAllPossibleTorrents();
-        let torrents = searchResult.torrentsArr;
+        const mediaKey = buildMediaKey({
+            type,
+            id,
+            expectedSeason,
+            requestedEp,
+            isMovie,
+            isRawSearch
+        });
+
+        const torrentResult = await getTorrentsForStream({
+            mediaKey,
+            scrape: fetchAllPossibleTorrents
+        });
+        let torrents = torrentResult.torrents;
+
+        if (torrentResult.source === "wait" && !torrents.length) {
+            return {
+                streams: [
+                    {
+                        name: "NEXIO TORII [INFO]\nCache warming",
+                        description: "First scrape is already running. Try this episode again in a few seconds.",
+                        url: BASE_URL + "/waiting.mp4"
+                    }
+                ],
+                cacheMaxAge: 15
+            };
+        }
         
         //===============
         // EXPLICIT RESOLUTION & CLEANUP FILTER
@@ -664,7 +691,9 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
         const hashes = torrents.map(t => t.hash.toLowerCase());
         const availabilityByEntry = await Promise.all(
             userConfig.debridServices.map(entry =>
-                checkStoreTorz(hashes, entry).catch(error => {
+                checkStoreTorzWithCache(hashes, entry, {
+                    scope: { season: expectedSeason, episode: requestedEp }
+                }).catch(error => {
                     console.error(`[PIPELINE] ${entry.service} availability failed: ${error.message}`);
                     return {};
                 })

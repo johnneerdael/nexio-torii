@@ -85,11 +85,16 @@ Environment variables:
 | `CACHE_DB_PATH` | `data/nexio-cache.sqlite` | SQLite database path |
 | `TORRENT_CACHE_FRESH_MS` | `21600000` | Time torrent results are considered fresh |
 | `TORRENT_CACHE_STALE_MS` | `604800000` | Time stale torrent results can still be returned while refreshing |
+| `EMPTY_SEARCH_CACHE_TTL_MS` | `300000` | Time no-result searches are remembered to avoid repeated tracker misses |
 | `DEBRID_CACHE_TTL_MS` | `86400000` | Time StremThru availability is cached per service/hash/episode |
 | `STREAM_HTTP_MAX_AGE_SECONDS` | `1800` | Browser stream response cache TTL |
 | `STREAM_HTTP_S_MAXAGE_SECONDS` | `3600` | CDN stream response cache TTL |
 | `STREAM_HTTP_STALE_REVALIDATE_SECONDS` | `21600` | CDN stale-while-revalidate window |
 | `STREAM_HTTP_STALE_ERROR_SECONDS` | `300` | CDN stale-if-error window |
+
+Scrape coordination uses SQLite-backed locks in the same cache database, so multiple containers sharing the same `/app/data` volume avoid duplicate foreground scrapes for the same media key.
+
+Stream and manifest responses include CDN-friendly `Cache-Control` headers and ETags for both direct and configured Stremio routes.
 
 The current source set remains Nyaa, AnimeTosho, and TokyoTosho. SubsPlease, TokyoTosho account-specific behavior, and Beatrice-Raws are intentionally deferred until the cache layer is stable.
 

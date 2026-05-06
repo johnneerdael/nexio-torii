@@ -59,3 +59,44 @@ test("runIngestion stores only resolved rows and drops unmapped rows", async () 
     db.close();
     closeCatalogDatabaseForTests();
 });
+
+test("runIngestion drops support uploads without metadata lookups", async () => {
+    const db = getCatalogDatabase({ dbPath: ":memory:" });
+    const animeMap = loadAnimeMap(path.join(__dirname, "fixtures", "catalog", "anime-map-mini.json"));
+    let lookupCount = 0;
+
+    const result = await runIngestion({
+        db,
+        animeMap,
+        source: "nyaa",
+        mode: "test",
+        metadataClients: {
+            kitsuSearchAnime: async () => {
+                lookupCount += 1;
+                return [];
+            },
+            tmdbSearch: async () => {
+                lookupCount += 1;
+                return [];
+            }
+        },
+        fetchItems: async () => [
+            {
+                source: "nyaa",
+                sourceItemId: "support-1",
+                infoHash: "abcdef0123456789abcdef0123456789abcdef10",
+                title: "[KOTEX] Kanpekisugite Kawaige ga Nai Subs+Fonts for ReinForce [BD].zip",
+                raw: {}
+            }
+        ],
+        now: () => 6000
+    });
+
+    assert.equal(result.scanned, 1);
+    assert.equal(result.upserted, 0);
+    assert.equal(result.droppedUnmapped, 1);
+    assert.equal(lookupCount, 0);
+    assert.equal(db.prepare("SELECT reason FROM dropped_source_items").get().reason, "support_upload");
+    db.close();
+    closeCatalogDatabaseForTests();
+});

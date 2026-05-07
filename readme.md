@@ -10,6 +10,10 @@
 
 Nexio Torii is a hard fork of Amatsu for Stremio anime streams. It keeps the Nyaa search, episode parsing, subtitle proxy, P2P fallback, and stateless manifest configuration model, then routes premium unlockers through StremThru so one addon can support multiple stores.
 
+## Universal-formatter integration
+
+Streams now emit a parser-friendly shape (3-line name + 7-line description with structured fields: `📄 filename · 💾 size · 👥 seeders · 📅 age · 📡 indexer · 🎬 canonical · 📺 episode · 🎯 match · 🆔 cross-IDs`). The Nexio Android app recognises Torii by manifest ID, applies the dedicated `NEXIO_TORII` parser branch, and renders the ⛩ Torii drawable badge. Other Stremio clients fall back to a still-readable description-only render — no breakage for non-Nexio users.
+
 Supported premium unlockers:
 
 - RealDebrid

@@ -463,7 +463,11 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
             if (r.source === "anilist") freshMeta = r.meta;
         });
 
-        // Intercepting requests coming from Cinemeta (like IMDB tt tags) and translating them to Anilist
+        // Intercepting requests coming from Cinemeta (like IMDB tt tags) and translating them to Anilist.
+        // We must accept the AniList match if ANY of its title variants matches the Cinemeta name —
+        // otherwise shows where Cinemeta has the English title but AniList exposes the Romaji
+        // (Boku no Hero Academia / Shingeki no Kyojin / Hagane no Renkinjutsushi etc.) silently
+        // fail to populate freshMeta, which in turn skips the canon-gate filter for tt-prefix IDs.
         if (id.startsWith("tt") && searchTitleFallback) {
              try {
                 const searchResults = await searchAnime(searchTitleFallback);
@@ -471,9 +475,14 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
                     const matchedId = searchResults[0].id.split(":")[1];
                     const extraMeta = await getAnimeMeta(matchedId);
                     if (extraMeta) {
-                        const anilistName = extraMeta.name.toLowerCase();
-                        const cinemetaName = searchTitleFallback.toLowerCase();
-                        if (anilistName.includes(cinemetaName) || cinemetaName.includes(anilistName)) {
+                        const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+                        const cinemetaNorm = norm(searchTitleFallback);
+                        const variants = [extraMeta.name, extraMeta.englishName, extraMeta.altName]
+                            .concat(Array.isArray(extraMeta.synonyms) ? extraMeta.synonyms : [])
+                            .map(norm)
+                            .filter(Boolean);
+                        const matched = variants.some(v => v === cinemetaNorm || v.includes(cinemetaNorm) || cinemetaNorm.includes(v));
+                        if (matched) {
                             freshMeta = extraMeta;
                         }
                     }

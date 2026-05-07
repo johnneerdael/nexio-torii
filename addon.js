@@ -10,7 +10,7 @@ const axios = require("axios");
 const { searchAnime, getAnimeMeta, getTrendingAnime, getTopAnime, getAiringAnime, getSeasonalAnime, getJikanMeta, fetchEpisodeDetails, getCurrentSeasonInfo } = require("./lib/anilist");
 const { searchNyaaForAnime } = require("./lib/nyaa");
 const { encodeConfigPayload, fromBase64Safe, parseConfig, toBase64Safe } = require("./lib/config");
-const { buildDebridStreams } = require("./lib/stream-builder");
+const { buildDebridStreams, buildP2PStream, buildParsedFromTitle } = require("./lib/stream-builder");
 const { extractEpisodeNumber, getBatchRange, isEpisodeMatch, selectBestVideoFile, isSeasonBatch, verifyTitleMatch } = require("./lib/parser");
 const { getTorrentsForStream } = require("./lib/cache/stream-cache");
 const { buildMediaKey } = require("./lib/cache/torrent-cache");
@@ -793,26 +793,29 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
             // Attaches active trackers enabling direct torrent streaming via Stremio.
             //===============
             if (userConfig.enableP2P) {
-                const p2pName = `TORII [📡 P2P]\n🎥 ${res}`;
-                const p2pDesc = `${flag} Nyaa | 📡 P2P${batchStr}\n📄 ${t.title}\n💾 ${t.size} | 👥 ${seeders} Seeds`;
-                
-                streams.push({
-                    "name": p2pName,
-                    "description": p2pDesc,
-                    "infoHash": t.hash, 
-                    "sources": [
-                        "tracker:http://nyaa.tracker.wf:7777/announce",
-                        "tracker:udp://open.stealth.si:80/announce",
-                        "tracker:udp://tracker.opentrackr.org:1337/announce",
-                        "tracker:udp://exodus.desync.com:6969/announce",
-                        "dht:" + t.hash
-                    ],
-                    "behaviorHints": { "bingeGroup": "nexio_torii_p2p_" + t.hash },
-                    "_bytes": bytes, "_lang": streamLang, "_isCached": false, "_res": res, "_prog": 0, "_seeders": seeders, "_isBatch": isBatch
+                const parsedForP2P = buildParsedFromTitle(t.title, res, streamLang, isBatch, null);
+                const p2pStream = buildP2PStream({
+                    torrent: t,
+                    parsed: parsedForP2P,
+                    canonical: freshMeta || null,
+                    requestedEp,
+                    expectedSeason,
+                    anilistId: aniListId || null,
+                    streamLang,
+                    seeders,
+                    bytes,
+                    isBatch,
+                    isMovie
                 });
+                streams.push(p2pStream);
             }
 
         });
+
+        const canonicalForFormatter = freshMeta ? {
+            ...freshMeta,
+            anilistId: aniListId || (freshMeta.id ? String(freshMeta.id).replace(/^anilist:/, "") : null)
+        } : { anilistId: aniListId || null };
 
         const debridStreams = buildDebridStreams({
             torrents,
@@ -830,7 +833,8 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
             parseSizeToBytes,
             selectBestVideoFile,
             isEpisodeMatch,
-            isSeasonBatch
+            isSeasonBatch,
+            canonical: canonicalForFormatter
         });
         streams.push(...debridStreams);
 

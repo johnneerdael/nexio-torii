@@ -3,8 +3,17 @@ const express = require("express");
 const axios = require("axios");
 const path = require("path");
 const { getRouter } = require("stremio-addon-sdk");
-const { addonInterface } = require("./addon");
+const { addonInterface, manifest } = require("./addon");
 const { parseConfig } = require("./lib/config");
+
+const CATALOG_CONFIG_KEYS = {
+    nexio_seasonal_series: "showSeasonalSeries",
+    nexio_airing_series: "showAiringSeries",
+    nexio_trending_series: "showTrendingSeries",
+    nexio_top_series: "showTopSeries",
+    nexio_trending_movie: "showTrendingMovies",
+    nexio_top_movie: "showTopMovies"
+};
 const { selectBestVideoFile } = require("./lib/parser");
 const { resolveStorePlayback, resolveStoreSubtitle } = require("./lib/playback");
 const { applyHttpCacheHeaders } = require("./lib/cache/http-cache");
@@ -199,6 +208,21 @@ app.get("/resolve/:nexioPayload/:serviceIndex/:hash/:episode?", async (req, res)
     } catch (e) {
         console.error("[Resolve Error] Core resolution failure: " + e.message);
         return serveLoadingVideo(req, res);
+    }
+});
+
+app.get("/:config/manifest.json", (req, res, next) => {
+    try {
+        const decoded = JSON.parse(req.params.config);
+        const userConfig = parseConfig(decoded);
+        const filteredCatalogs = manifest.catalogs.filter(cat => {
+            const key = CATALOG_CONFIG_KEYS[cat.id];
+            if (!key) return true;
+            return userConfig[key] !== false;
+        });
+        res.json({ ...manifest, catalogs: filteredCatalogs });
+    } catch (e) {
+        next();
     }
 });
 

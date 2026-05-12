@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { buildDebridStreams, buildP2PStream } = require("../lib/stream-builder");
+const { buildDebridStreams, buildP2PStream, dedupeTorrentsByExactSize } = require("../lib/stream-builder");
 const { encodeConfigPayload } = require("../lib/config");
 
 const baseTorrent = {
@@ -132,4 +132,17 @@ test("buildP2PStream emits a Stremio-shape P2P stream with infoHash + sources", 
     assert.ok(Array.isArray(stream.sources));
     assert.match(stream.name, /📡 P2P/);
     assert.match(stream.name, /⛩ Torii/);
+});
+
+test("dedupeTorrentsByExactSize keeps the highest-seeded torrent for identical sizes", () => {
+    const torrents = [
+        { hash: "aaa", title: "Show - 01 [1080p]", size: "1.5 GiB", seeders: 12 },
+        { hash: "bbb", title: "Show - 01 [1080p] mirror", size: "1.5 GiB", seeders: 45 },
+        { hash: "ccc", title: "Show - 01 [720p]", size: "800 MiB", seeders: 5 },
+        { hash: "ddd", title: "Show - 01 unknown", size: "Unknown", seeders: 99 }
+    ];
+
+    const out = dedupeTorrentsByExactSize(torrents);
+
+    assert.deepEqual(out.map(t => t.hash), ["bbb", "ccc", "ddd"]);
 });

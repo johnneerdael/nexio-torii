@@ -10,7 +10,7 @@ const axios = require("axios");
 const { searchAnime, getAnimeMeta, getTrendingAnime, getTopAnime, getAiringAnime, getSeasonalAnime, getJikanMeta, fetchEpisodeDetails, getCurrentSeasonInfo } = require("./lib/anilist");
 const { searchNyaaForAnime } = require("./lib/nyaa");
 const { encodeConfigPayload, fromBase64Safe, parseConfig, toBase64Safe } = require("./lib/config");
-const { buildDebridStreams, buildP2PStream, buildParsedFromTitle } = require("./lib/stream-builder");
+const { buildDebridStreams, buildP2PStream, buildParsedFromTitle, dedupeTorrentsByExactSize } = require("./lib/stream-builder");
 const { extractEpisodeNumber, getBatchRange, isEpisodeMatch, selectBestVideoFile, isSeasonBatch, verifyTitleMatch } = require("./lib/parser");
 const { getTorrentsForStream } = require("./lib/cache/stream-cache");
 const { buildMediaKey } = require("./lib/cache/torrent-cache");
@@ -744,6 +744,21 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
 
         if (!torrents.length) return { "streams": [], "cacheMaxAge": 60 };
 
+        let epDropCount = 0;
+        torrents = torrents.filter(t => {
+            if (isMovie || isRawSearch) return true;
+            const isBatch = isSeasonBatch(t.title, expectedSeason);
+            const isValidMatch = isBatch || isEpisodeMatch(t.title, requestedEp, expectedSeason);
+            if (!isValidMatch) epDropCount++;
+            return isValidMatch;
+        });
+
+        if (!torrents.length) return { "streams": [], "cacheMaxAge": 60 };
+
+        const beforeSizeDedupe = torrents.length;
+        torrents = dedupeTorrentsByExactSize(torrents);
+        const sizeDedupDropCount = beforeSizeDedupe - torrents.length;
+
         const hashes = torrents.map(t => t.hash.toLowerCase());
         const availabilityByEntry = await Promise.all(
             userConfig.debridServices.map(entry =>
@@ -761,7 +776,6 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
         const userLangs = Array.isArray(userConfig.language) ? userConfig.language : [userConfig.language || "ENG"];
 
         const streams = [];
-        let epDropCount = 0;
 
         // Iterates through valid torrents to format final stream objects
         torrents.forEach(t => {
@@ -838,7 +852,7 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
         });
         streams.push(...debridStreams);
 
-        console.log(`[NEXIO TORII FORENSICS] Canon-Gate ${canonGateDropCount}, Resolution-Filter ${filterDropCount}, Episoden-Filter ${epDropCount} nicht-passende Einträge gelöscht.`);
+        console.log(`[NEXIO TORII FORENSICS] Canon-Gate ${canonGateDropCount}, Resolution-Filter ${filterDropCount}, Size-Dedup ${sizeDedupDropCount}, Episoden-Filter ${epDropCount} nicht-passende Einträge gelöscht.`);
         console.log(`[NEXIO TORII FORENSICS] Finale Streams an Stremio gesendet: ${streams.length}\n`);
 
         //===============

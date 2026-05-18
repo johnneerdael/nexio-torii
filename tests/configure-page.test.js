@@ -25,3 +25,8 @@ test("configure page surfaces provider API key links", () => {
     assert.match(configurePage, /rel="noopener noreferrer"/);
     assert.match(configurePage, /Get key/);
 });
+
+test("configure page includes search provider visibility toggle", () => {
+    assert.match(configurePage, /id="showSearchCatalog"/);
+    assert.match(configurePage, /showSearchCatalog/);
+});

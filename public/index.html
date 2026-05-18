@@ -326,6 +326,11 @@
                         <span class="text-[11px] font-mono text-gray-500 uppercase tracking-widest group-hover:text-blue-400 transition-colors duration-300">Use English Titles</span>
                     </label>
 
+                    <label class="flex items-center space-x-4 cursor-pointer group px-2 mb-5">
+                        <input type="checkbox" id="showSearchCatalog" checked class="glass-checkbox">
+                        <span class="text-[11px] font-mono text-gray-500 uppercase tracking-widest group-hover:text-blue-400 transition-colors duration-300">Advertise Search Provider</span>
+                    </label>
+
                     <p class="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-3 px-2">Series Catalogs</p>
                     <div class="space-y-3 px-2 mb-5">
                         <label class="flex items-center space-x-4 cursor-pointer group">
@@ -502,6 +507,7 @@
             const showTopSeries = document.getElementById("showTopSeries").checked;
             const showTrendingMovies = document.getElementById("showTrendingMovies").checked;
             const showTopMovies = document.getElementById("showTopMovies").checked;
+            const showSearchCatalog = document.getElementById("showSearchCatalog").checked;
             
             const displayBox = document.getElementById("manifestUrlDisplay");
             const copyBtn = document.getElementById("copyBtn");
@@ -518,9 +524,10 @@
                 showSeasonalSeries,
                 showAiringSeries,
                 showTrendingSeries, 
-                showTopSeries, 
-                showTrendingMovies, 
+                showTopSeries,
+                showTrendingMovies,
                 showTopMovies,
+                showSearchCatalog,
                 hideUncached,
                 resolutions
             };
@@ -607,6 +614,7 @@
             const inputs = [
                 "enableP2P",
                 "hideUncached", "useEnglishTitles",
+                "showSearchCatalog",
                 "showSeasonalSeries", "showAiringSeries", "showTrendingSeries", "showTopSeries",
                 "showTrendingMovies", "showTopMovies"
             ];

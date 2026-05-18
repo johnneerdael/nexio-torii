@@ -65,8 +65,14 @@ test("parseConfig decodes Nexio Torii payload and normalizes greenfield config",
     assert.deepEqual(parsed.debridServices, raw.debridServices);
     assert.equal(parsed.enableP2P, true);
     assert.equal(parsed.hideUncached, true);
+    assert.equal(parsed.showSearchCatalog, true);
     assert.deepEqual(parsed.language, ["ENG", "JPN"]);
     assert.deepEqual(parsed.resolutions, ["1080p"]);
+});
+
+test("normalizeConfig respects explicit search catalog disable", () => {
+    const normalized = normalizeConfig({ showSearchCatalog: false });
+    assert.equal(normalized.showSearchCatalog, false);
 });
 
 test("parseConfig accepts legacy Amatsu payloads during migration", () => {
